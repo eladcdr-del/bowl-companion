@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="מלווה דיגיטלי לקערת שירה הימלאית — הכרות, תרגול, וטיפוח. אמת לפני שיווק.">
+<meta name="theme-color" content="#1b1611">
+<title>הֵד · מלווה הקערה</title>
+
+<!-- Inline SVG favicon: a small bronze bowl glyph -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b1611'/%3E%3Cpath d='M7.4 12 Q16 25 24.6 12' fill='none' stroke='%23dba345' stroke-width='1.6' stroke-linecap='round'/%3E%3Cellipse cx='16' cy='12' rx='9' ry='2.6' fill='none' stroke='%23dba345' stroke-width='1.4'/%3E%3C/svg%3E">
+
+<!-- Only external request: Google Fonts (display=swap) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Frank+Ruhl+Libre:wght@500;700;900&display=swap" rel="stylesheet">
+
+<style>
+/* =================================================================
+   מלווה הקערה — "אור נר על ברונזה" (candlelight on bronze)
+   Single-file companion. Inline CSS + vanilla JS. RTL, mobile-first.
+   ================================================================= */
+
+/* ---------- 1. DESIGN TOKENS ---------- */
+:root{
+  --bg: 28 18% 9%;          /* deep warm brown-charcoal base */
+  --bg-2: 28 16% 12%;       /* raised surface */
+  --bg-3: 26 15% 16%;       /* higher surface / inputs */
+  --line: 32 14% 24%;       /* hairline borders */
+  --bronze: 36 68% 58%;     /* primary accent (warm gold-bronze) */
+  --bronze-soft: 36 55% 50%;
+  --copper: 20 60% 47%;     /* secondary warm accent */
+  --ink: 38 30% 92%;        /* primary text — warm off-white */
+  --ink-2: 35 14% 70%;      /* secondary text */
+  --ink-3: 33 11% 58%;      /* tertiary/muted — 58% L keeps muted text above AA on the dark bg */
+  --ok: 145 35% 55%;
+  --warn: 38 75% 60%;
+
+  /* spacing — 4px scale */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s8: 32px;  --s10: 40px; --s12: 48px; --s16: 64px;
+  --s20: 80px; --s24: 96px;
+
+  --r-card: 22px;
+  --r-btn: 15px;
+  --r-pill: 999px;
+
+  --ease: cubic-bezier(.4, 0, .2, 1);
+  --dur: 700ms;
+
+  --shadow-card: 0 1px 0 hsl(40 30% 100% / .04) inset,
+                 0 18px 50px -20px hsl(20 40% 2% / .7);
+  --shadow-raised: 0 1px 0 hsl(40 30% 100% / .05) inset,
+                   0 24px 70px -24px hsl(20 40% 1% / .8);
+  --glow-bronze: 0 0 0 1px hsl(var(--bronze) / .18),
+                 0 10px 36px -10px hsl(var(--bronze) / .35);
+
+  --maxprose: 62ch;
+}
+
+/* ---------- RESET ---------- */
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+html{ -webkit-text-size-adjust:100%; scroll-behavior:smooth; }
+@media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
+
+body{
+  font-family:"Assistant", system-ui, sans-serif;
+  font-weight:400;
+  font-size:1.0625rem;
+  line-height:1.7;
+  color:hsl(var(--ink));
+  background:hsl(var(--bg));
+  min-height:100vh;
+  min-height:100dvh;
+  overflow-x:hidden;
+  position:relative;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- ATMOSPHERE: soft radial glows + faint grain ---------- */
+.atmos{
+  position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(60% 45% at 78% 8%,  hsl(var(--bronze) / .14), transparent 60%),
+    radial-gradient(55% 50% at 12% 78%, hsl(var(--copper) / .12), transparent 62%),
+    radial-gradient(80% 60% at 50% 120%, hsl(36 50% 30% / .10), transparent 70%);
+}
+.grain{
+  position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.035;
+  mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- TYPOGRAPHY ---------- */
+h1,h2,h3,.display{ font-family:"Frank Ruhl Libre", Georgia, serif; line-height:1.15; color:hsl(var(--ink)); font-weight:700; }
+h1{ font-size:clamp(2.2rem, 7vw, 3.4rem); font-weight:900; letter-spacing:-.01em; }
+h2{ font-size:clamp(1.6rem, 5vw, 2.2rem); font-weight:700; letter-spacing:-.005em; }
+h3{ font-size:1.3rem; font-weight:700; }
+p{ max-width:var(--maxprose); }
+small,.small{ font-size:.9rem; }
+strong{ font-weight:700; color:hsl(var(--ink)); }
+a{ color:hsl(var(--bronze)); text-underline-offset:3px; }
+bdi,.ltr{ unicode-bidi:isolate; }
+.ltr{ direction:ltr; }
+
+/* ---------- LAYOUT ---------- */
+.wrap{ width:100%; max-width:760px; margin-inline:auto; padding-inline:var(--s5); }
+main{ position:relative; }
+.movement{ padding-block:var(--s20); position:relative; }
+.movement > .wrap > *{ max-width:var(--maxprose); }
+.eyebrow{
+  font-size:.8rem; font-weight:700; letter-spacing:.22em; text-transform:none;
+  color:hsl(var(--bronze)); margin-block-end:var(--s4);
+}
+/* per-section orientation label: a short bronze tick precedes the tracked word */
+.sec-eyebrow{
+  display:flex; align-items:center; gap:var(--s3);
+  font-size:.74rem; letter-spacing:.26em; color:hsl(var(--bronze) / .92);
+  margin-block-end:var(--s3);
+}
+.sec-eyebrow::before{
+  content:""; inline-size:26px; block-size:2px; flex:0 0 auto; border-radius:2px;
+  background:linear-gradient(90deg, hsl(var(--bronze) / .85), hsl(var(--bronze) / 0));
+}
+.lead{ color:hsl(var(--ink-2)); font-size:1.2rem; line-height:1.6; margin-block-start:var(--s5); max-width:54ch; }
+@media (min-width:900px){ .lead{ font-size:1.28rem; } }
+.muted{ color:hsl(var(--ink-2)); }
+.section-head{ margin-block-end:var(--s10); }
+
+/* reveal-on-scroll */
+.reveal{ opacity:0; transform:translateY(22px); transition:opacity 900ms var(--ease), transform 900ms var(--ease); }
+.reveal.in{ opacity:1; transform:none; }
+@media (prefers-reduced-motion: reduce){
+  .reveal{ opacity:1; transform:none; transition:none; }
+}
+
+/* ---------- TOP BAR ---------- */
+.topbar{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  padding-block:var(--s3); padding-inline:var(--s5);
+  background:hsl(var(--bg) / .72);
+  backdrop-filter:blur(14px) saturate(1.2);
+  -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  border-block-end:1px solid hsl(var(--line) / .6);
+}
+.brand{ display:flex; align-items:baseline; gap:var(--s2); min-width:0; }
+.brand .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; font-size:1.5rem; color:hsl(var(--bronze)); line-height:1; }
+.brand .sub{ font-size:.78rem; color:hsl(var(--ink-3)); white-space:nowrap; }
+.topbar-tools{ display:flex; align-items:center; gap:var(--s2); }
+
+/* lens segmented pill */
+.lens{
+  display:inline-flex; background:hsl(var(--bg-3)); border:1px solid hsl(var(--line));
+  border-radius:var(--r-pill); padding:3px; position:relative;
+}
+.lens button{
+  appearance:none; border:0; background:transparent; cursor:pointer;
+  font-family:inherit; font-size:.82rem; font-weight:600; color:hsl(var(--ink-2));
+  padding:6px 13px; border-radius:var(--r-pill); min-height:34px;
+  transition:color 300ms var(--ease);
+}
+.lens button[aria-pressed="true"]{ color:hsl(28 25% 14%); }
+.lens .thumb{
+  position:absolute; top:3px; bottom:3px; inset-inline-start:3px;
+  width:calc(50% - 3px); border-radius:var(--r-pill);
+  background:hsl(var(--bronze)); box-shadow:0 4px 12px -4px hsl(var(--bronze) / .6);
+  transition:transform 420ms var(--ease); z-index:0;
+}
+.lens button{ position:relative; z-index:1; }
+/* RTL: thumb sits at inline-start (over "לי"); for pro it moves toward inline-end
+   which is visually leftward, i.e. a negative translateX in RTL flow. */
+body[data-lens="pro"] .lens .thumb{ transform:translateX(-100%); }
+
+/* icon button (mute) */
+.icon-btn{
+  appearance:none; border:1px solid hsl(var(--line)); background:hsl(var(--bg-3));
+  color:hsl(var(--ink-2)); width:38px; height:38px; min-width:38px; border-radius:var(--r-pill);
+  display:grid; place-items:center; cursor:pointer; transition:all 280ms var(--ease);
+}
+.icon-btn:hover{ color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .5); }
+.icon-btn svg{ width:19px; height:19px; }
+.icon-btn .ic-off{ display:none; }
+.icon-btn[aria-pressed="true"] .ic-on{ display:none; }
+.icon-btn[aria-pressed="true"] .ic-off{ display:block; }
+
+/* ---------- BUTTONS ---------- */
+.btn{
+  appearance:none; cursor:pointer; font-family:inherit; font-weight:700;
+  font-size:1rem; min-height:48px; padding:.7em 1.6em; border-radius:var(--r-btn);
+  border:1px solid transparent; display:inline-flex; align-items:center; gap:var(--s2);
+  justify-content:center; transition:transform 240ms var(--ease), box-shadow 240ms var(--ease),
+  background 240ms var(--ease), color 240ms var(--ease); line-height:1.1; text-decoration:none;
+}
+.btn:active{ transform:translateY(1px) scale(.995); }
+.btn-primary{ background:hsl(var(--bronze)); color:hsl(28 28% 12%); box-shadow:0 8px 22px -10px hsl(var(--bronze) / .6); }
+.btn-primary:hover{ box-shadow:0 12px 30px -8px hsl(var(--bronze) / .7); transform:translateY(-1px); }
+.btn-secondary{ background:transparent; color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .4); }
+.btn-secondary:hover{ border-color:hsl(var(--bronze) / .8); background:hsl(var(--bronze) / .07); }
+.btn-tertiary{ background:transparent; color:hsl(var(--bronze)); border:0; min-height:auto; padding:.4em .2em; }
+.btn-tertiary:hover{ text-decoration:underline; }
+.btn .arr{ font-weight:400; opacity:.85; }
+.cta-row{ display:flex; flex-wrap:wrap; gap:var(--s3); margin-block-start:var(--s8); align-items:center; }
+
+/* focus visible — bronze ring everywhere */
+:focus-visible{ outline:2px solid hsl(var(--bronze)); outline-offset:2px; border-radius:6px; }
+.btn:focus-visible, .icon-btn:focus-visible, .lens button:focus-visible, .chip:focus-visible{ outline-offset:3px; }
+
+/* ---------- ARRIVAL / HERO ---------- */
+/* launcher footprint = button height (52) + its bottom offset (~s5) + safe-area.
+   any full-height region keeps this much bottom clearance so the fixed
+   launcher (z-45) never covers content. */
+:root{ --launcher-clear: calc(72px + env(safe-area-inset-bottom)); }
+.hero{
+  min-height:100vh; min-height:100dvh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  /* allow the stack to scroll instead of clipping under the launcher on short screens */
+  padding-block:var(--s16) calc(var(--s12) + var(--launcher-clear)); padding-inline:var(--s5);
+  gap:var(--s4); position:relative;
+}
+.hero .eyebrow{ margin-block-end:var(--s2); }
+.hero h1{ max-width:14ch; margin-inline:auto; }
+.hero .hero-sub{ color:hsl(var(--ink-2)); font-size:1.15rem; max-width:30ch; margin-inline:auto; margin-block-start:var(--s2); }
+
+/* interactive bowl (SVG) */
+.bowl-stage{ position:relative; width:min(80vw, 360px); aspect-ratio:1; margin-block:var(--s5) var(--s6); display:grid; place-items:center; }
+.bowl-rings{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
+.ring{
+  position:absolute; border:1.5px solid hsl(var(--bronze) / .5); border-radius:50%;
+  width:60%; height:60%; opacity:0;
+}
+.ring.go{ animation:ringPulse 2600ms var(--ease) forwards; }
+@keyframes ringPulse{
+  0%{ transform:scale(.55); opacity:.7; }
+  100%{ transform:scale(1.7); opacity:0; }
+}
+.bowl-btn{
+  appearance:none; border:0; background:transparent; cursor:pointer; padding:0;
+  width:100%; height:100%; border-radius:50%; display:grid; place-items:center;
+  position:relative; z-index:2; transition:transform 500ms var(--ease);
+}
+.bowl-btn:hover{ transform:scale(1.015); }
+.bowl-btn:active{ transform:scale(.985); }
+.bowl-btn svg{ width:100%; height:100%; filter:drop-shadow(0 24px 50px hsl(20 50% 3% / .6)); }
+/* gentle idle breathing on the glow — invites the tap, echoes the orb's life */
+.bowl-glow{ animation:bowlBreathe 6500ms var(--ease) infinite; transform-box:fill-box; transform-origin:center; }
+@keyframes bowlBreathe{ 0%,100%{ opacity:.34; transform:scale(.98);} 50%{ opacity:.5; transform:scale(1.04);} }
+.bowl-btn.struck .bowl-glow{ animation:bowlGlow 2400ms var(--ease); }
+@keyframes bowlGlow{ 0%{ opacity:.2;} 18%{ opacity:.95;} 100%{ opacity:.4;} }
+@media (prefers-reduced-motion: reduce){ .bowl-glow{ animation:none; opacity:.4; } }
+.bowl-body{ transform-origin:center; }
+.bowl-btn.struck .bowl-body{ animation:bowlShimmer 2200ms var(--ease); }
+@keyframes bowlShimmer{ 0%,100%{ transform:scaleX(1);} 25%{ transform:scaleX(1.012);} 60%{ transform:scaleX(.994);} }
+
+.sound-note{ font-size:.85rem; color:hsl(var(--ink-3)); margin-block-start:var(--s2); min-height:1.2em; }
+.hero-cta{ margin-block-start:var(--s4); opacity:0; transform:translateY(8px); transition:opacity 600ms var(--ease), transform 600ms var(--ease); pointer-events:none; }
+.hero-cta.show{ opacity:1; transform:none; pointer-events:auto; }
+
+/* fork line */
+.fork{ margin-block-start:var(--s8); display:flex; flex-direction:column; align-items:center; gap:var(--s3); }
+.fork .q{ font-size:.95rem; color:hsl(var(--ink-3)); font-family:"Frank Ruhl Libre", serif; }
+.fork-choices{ display:flex; flex-wrap:wrap; gap:var(--s2); justify-content:center; }
+.fork-choices button{
+  appearance:none; cursor:pointer; font-family:inherit; font-size:.9rem; font-weight:600;
+  color:hsl(var(--ink-2)); background:hsl(var(--bg-2) / .6); border:1px solid hsl(var(--line));
+  border-radius:var(--r-pill); padding:10px 18px; min-height:44px; transition:all 280ms var(--ease);
+}
+.fork-choices button:hover{ color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .5); }
+.fork-choices button[aria-pressed="true"]{ color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .7); background:hsl(var(--bronze) / .08); }
+.hero-foot{ margin-block-start:var(--s10); font-size:.85rem; color:hsl(var(--ink-3)); }
+
+/* scroll hint */
+.scroll-hint{ position:absolute; inset-block-end:var(--s5); inset-inline:0; display:grid; place-items:center; color:hsl(var(--ink-3)); }
+.scroll-hint svg{ width:22px; height:22px; animation:bob 2400ms var(--ease) infinite; }
+@keyframes bob{ 0%,100%{ transform:translateY(0); opacity:.5;} 50%{ transform:translateY(6px); opacity:1;} }
+@media (prefers-reduced-motion: reduce){ .scroll-hint svg, .ring.go, .bowl-btn.struck .bowl-glow, .bowl-btn.struck .bowl-body{ animation:none; } }
+
+/* short viewports (e.g. compact phones / 375×667): tighten the hero's vertical
+   rhythm so the whole arrival composes without clipping. Placed AFTER all base
+   hero rules so these overrides win the cascade when the query matches. */
+@media (max-height:700px){
+  .hero{ justify-content:flex-start; padding-block:var(--s10) calc(var(--s8) + var(--launcher-clear)); gap:var(--s2); }
+  .hero .bowl-stage{ width:min(52vw, 220px); margin-block:var(--s4); }
+  .hero .fork{ margin-block-start:var(--s6); }
+  .hero .hero-foot{ margin-block-start:var(--s5); }
+  .hero .scroll-hint{ display:none; }
+}
+
+/* desktop: let the signature bowl command the wide canvas. Larger stage,
+   a bit more presence in the headline, tighter vertical coupling. */
+@media (min-width:900px){
+  .hero h1{ font-size:clamp(3rem, 4.2vw, 4.1rem); max-width:16ch; }
+  .hero .hero-sub{ font-size:1.25rem; max-width:34ch; }
+  .hero .bowl-stage{ width:min(46vw, 460px); margin-block:var(--s6) var(--s5); }
+}
+
+/* ---------- CONTENT BLOCKS ---------- */
+.block{ margin-block-start:var(--s8); }
+.block h3{ color:hsl(var(--bronze)); margin-block-end:var(--s2); }
+.block p{ color:hsl(var(--ink-2)); }
+.block p strong{ color:hsl(var(--ink)); }
+
+/* varied "first contact" blocks */
+.contact-blocks{ display:flex; flex-direction:column; gap:var(--s8); margin-block-start:var(--s10); }
+.cblock{ position:relative; padding-inline-start:var(--s5); border-inline-start:2px solid hsl(var(--line)); }
+.cblock .num{
+  font-family:"Frank Ruhl Libre", serif; font-weight:900; font-size:1.05rem;
+  color:hsl(var(--bronze)); display:inline-flex; margin-inline-end:var(--s2);
+}
+/* the "feature" block (two ways to play) carries the bronze emphasis;
+   the others stay quiet so bronze reads as an accent, not the default */
+.cblock.feature{ border-inline-start-width:3px; border-inline-start-color:hsl(var(--bronze) / .5); }
+.cblock.feature h3{ font-size:1.5rem; }
+
+/* explainer blocks (movement 2/3) with optional visual */
+.explainer{
+  margin-block-start:var(--s8); padding:var(--s6); border-radius:var(--r-card);
+  background:hsl(var(--bg-2) / .55); box-shadow:var(--shadow-card); border:1px solid hsl(var(--line) / .5);
+}
+.explainer h3{ color:hsl(var(--ink)); }
+.explainer p{ color:hsl(var(--ink-2)); margin-block-start:var(--s2); }
+.explainer .pro-add{ position:relative; margin-block-start:var(--s4); padding:var(--s3) var(--s4) var(--s3) var(--s5);
+  border-radius:14px; padding-inline-start:var(--s5);
+  background:hsl(var(--bronze) / .08); border:1px solid hsl(var(--bronze) / .22); font-size:.95rem; color:hsl(var(--ink-2)); }
+.explainer .pro-add::before{ content:""; position:absolute; inset-block:var(--s2); inset-inline-start:0;
+  inline-size:3px; border-radius:2px; background:hsl(var(--bronze) / .7); }
+.explainer .pro-add strong{ color:hsl(var(--bronze)); }
+.explainer .pro-add bdi{ font-variant-numeric:tabular-nums; font-weight:700; color:hsl(var(--bronze)); }
+.explainer .tinyvis{ margin-block-start:var(--s4); display:grid; place-items:center; }
+/* open-prose variant — no card chrome, just a quiet inline-start rule.
+   used to break the rhythm of stacked cards on the long scroll. */
+.explainer.plain{
+  background:transparent; border:0; box-shadow:none; border-radius:0;
+  padding:var(--s2) 0 var(--s2) 0; padding-inline-start:var(--s5);
+  border-inline-start:2px solid hsl(var(--line));
+}
+.explainer.plain h3{ color:hsl(var(--ink-2)); font-size:1.15rem; }
+
+/* honesty blocks (movement 3) — the credibility heart gets a distinct,
+   slightly warmer "stated plainly" treatment vs. the explainer cards elsewhere */
+.honesty .explainer{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg, hsl(34 30% 14% / .6), hsl(28 20% 11% / .5));
+  border-color:hsl(var(--bronze) / .16);
+  padding-inline-start:calc(var(--s6) + var(--s3));
+}
+.honesty .explainer::before{
+  content:""; position:absolute; inset-block:0; inset-inline-start:0;
+  inline-size:3px; background:linear-gradient(180deg, hsl(var(--bronze) / .8), hsl(var(--copper) / .4));
+}
+.honesty .explainer h3{ color:hsl(var(--bronze)); }
+/* the thesis line — set apart, larger, centered, framed by hairlines */
+.honesty .closing{
+  margin-block-start:var(--s12); padding-block:var(--s8); text-align:center;
+  font-family:"Frank Ruhl Libre", serif; font-weight:500;
+  font-size:clamp(1.3rem, 3.4vw, 1.6rem); color:hsl(var(--bronze)); line-height:1.5;
+  max-width:46ch; margin-inline:auto;
+  border-block:1px solid hsl(var(--bronze) / .22);
+}
+
+/* ---------- PRACTICE LIBRARY ---------- */
+.lib{ margin-block-start:var(--s10); display:grid; gap:var(--s4); grid-template-columns:1fr; }
+@media (min-width:600px){ .lib{ grid-template-columns:1fr 1fr; } .lib .card.wide{ grid-column:1 / -1; } }
+.card{
+  background:hsl(var(--bg-2) / .7); border:1px solid hsl(var(--line) / .6); border-radius:var(--r-card);
+  padding:var(--s6); box-shadow:var(--shadow-card); transition:transform 320ms var(--ease), box-shadow 320ms var(--ease), border-color 320ms var(--ease);
+}
+.card:hover{ transform:translateY(-3px); border-color:hsl(var(--bronze) / .35); box-shadow:var(--shadow-raised); }
+.card h3{ color:hsl(var(--ink)); margin-block-end:var(--s2); font-size:1.35rem; }
+.card .meta{ display:flex; flex-wrap:wrap; gap:var(--s2); margin-block:var(--s3) var(--s4); }
+.tag{ font-size:.78rem; font-weight:600; color:hsl(var(--bronze)); background:hsl(var(--bronze) / .1);
+  border:1px solid hsl(var(--bronze) / .2); border-radius:var(--r-pill); padding:3px 11px; }
+.tag.dur{ color:hsl(var(--ink-2)); background:hsl(var(--bg-3)); border-color:hsl(var(--line)); }
+.steps{ list-style:none; display:flex; flex-direction:column; gap:var(--s2); margin-block-start:var(--s2); }
+.steps li{ position:relative; padding-inline-start:var(--s5); color:hsl(var(--ink-2)); font-size:.97rem; }
+.steps li::before{ content:""; position:absolute; inset-inline-start:0; top:.62em; width:6px; height:6px;
+  border-radius:50%; background:hsl(var(--bronze) / .7); }
+.card.adv{ border-color:hsl(var(--copper) / .35); }
+
+/* do/don't (care) */
+.dodont{ display:grid; gap:var(--s4); margin-block-start:var(--s8); grid-template-columns:1fr; }
+@media (min-width:600px){ .dodont{ grid-template-columns:1fr 1fr; } }
+.dd-col{ position:relative; overflow:hidden; padding:var(--s5); border-radius:var(--r-card); background:hsl(var(--bg-2) / .55); border:1px solid hsl(var(--line) / .6); }
+.dd-col::before{ content:""; position:absolute; inset-block-start:0; inset-inline:0; block-size:3px; }
+.dd-col.yes::before{ background:linear-gradient(90deg, hsl(var(--ok) / .7), hsl(var(--ok) / 0)); }
+.dd-col.no::before{ background:linear-gradient(90deg, hsl(var(--copper) / .7), hsl(var(--copper) / 0)); }
+.dd-col h4{ font-family:"Assistant",sans-serif; font-weight:700; font-size:1.08rem; letter-spacing:.01em; margin-block-end:var(--s4); display:flex; align-items:center; gap:var(--s2); }
+.dd-col.yes h4{ color:hsl(var(--ok)); }
+.dd-col.no h4{ color:hsl(var(--copper)); }
+.dd-col ul{ list-style:none; display:flex; flex-direction:column; gap:var(--s2); }
+.dd-col li{ color:hsl(var(--ink-2)); font-size:.95rem; padding-inline-start:var(--s5); position:relative; }
+.dd-col.yes li::before{ content:"✓"; position:absolute; inset-inline-start:0; color:hsl(var(--ok)); }
+.dd-col.no li::before{ content:"✕"; position:absolute; inset-inline-start:0; color:hsl(var(--copper)); }
+
+/* expandable details */
+.accordion{ margin-block-start:var(--s8); display:flex; flex-direction:column; gap:var(--s3); }
+details.acc{ background:hsl(var(--bg-2) / .5); border:1px solid hsl(var(--line) / .6); border-radius:18px; overflow:hidden; }
+details.acc summary{ cursor:pointer; list-style:none; padding:var(--s4) var(--s5); font-weight:600;
+  color:hsl(var(--ink)); display:flex; align-items:center; justify-content:space-between; gap:var(--s3); }
+details.acc summary::-webkit-details-marker{ display:none; }
+details.acc summary .chev{ transition:transform 320ms var(--ease); color:hsl(var(--bronze)); flex-shrink:0; }
+details.acc[open] summary .chev{ transform:rotate(180deg); }
+details.acc .acc-body{ padding:0 var(--s5) var(--s5); color:hsl(var(--ink-2)); font-size:.97rem; }
+
+/* pro-only block styling */
+.pro-block{
+  position:relative; overflow:hidden;
+  margin-block-start:var(--s8); padding:var(--s6); border-radius:var(--r-card);
+  background:linear-gradient(180deg, hsl(var(--bronze) / .07), hsl(var(--bg-2) / .5));
+  border:1px solid hsl(var(--bronze) / .25);
+}
+/* inside the facilitator kit, alternate accents so the stack of blocks reads
+   as a sequence rather than uniform card soup — even blocks lean copper */
+#facilitator .pro-block::before{
+  content:""; position:absolute; inset-block:0; inset-inline-start:0; inline-size:3px;
+  background:linear-gradient(180deg, hsl(var(--bronze) / .7), hsl(var(--bronze) / .15));
+}
+#facilitator .pro-block:nth-of-type(even){
+  background:linear-gradient(180deg, hsl(var(--copper) / .08), hsl(var(--bg-2) / .5));
+  border-color:hsl(var(--copper) / .26);
+}
+#facilitator .pro-block:nth-of-type(even)::before{
+  background:linear-gradient(180deg, hsl(var(--copper) / .7), hsl(var(--copper) / .15));
+}
+#facilitator .pro-block:nth-of-type(even) .pro-tag{ color:hsl(var(--copper)); }
+.pro-block .pro-tag{ font-size:.74rem; font-weight:700; letter-spacing:.14em; color:hsl(var(--bronze)); margin-block-end:var(--s2); display:inline-flex; }
+.pro-block h3{ color:hsl(var(--ink)); }
+.pro-block p, .pro-block li{ color:hsl(var(--ink-2)); }
+.pro-list{ list-style:none; display:flex; flex-direction:column; gap:var(--s4); margin-block-start:var(--s4); }
+.pro-list li{ padding-inline-start:0; }
+.pro-list strong{ display:block; color:hsl(var(--bronze)); margin-block-end:2px; }
+
+/* lens visibility */
+[data-lens-el="pro"]{ display:none; }
+body[data-lens="pro"] [data-lens-el="pro"]{ display:revert; }
+body[data-lens="pro"] [data-lens-el="me"]{ display:none; }
+
+/* ---------- MAKER (movement 7) ---------- */
+.maker{ text-align:center; }
+.maker .sec-eyebrow{ justify-content:center; }
+.maker .placeholder{
+  margin-block-start:var(--s6); padding:var(--s8); border-radius:var(--r-card);
+  background:hsl(var(--bg-2) / .6); border:1px dashed hsl(var(--bronze) / .4);
+  color:hsl(var(--ink-2)); max-width:var(--maxprose); margin-inline:auto;
+}
+.maker .placeholder em{ color:hsl(var(--bronze)); font-style:normal; font-weight:600; }
+.contact-row{ display:flex; flex-wrap:wrap; gap:var(--s3); justify-content:center; margin-block-start:var(--s6); }
+.maker .warm{ margin-block-start:var(--s6); font-family:"Frank Ruhl Libre", serif; font-size:1.2rem; color:hsl(var(--ink)); }
+
+/* ---------- FOOTER ---------- */
+footer{ padding-block:var(--s12) var(--s24); border-block-start:1px solid hsl(var(--line) / .6); margin-block-start:var(--s12); }
+footer .disclaimer{ font-size:.88rem; color:hsl(var(--ink-3)); max-width:var(--maxprose); }
+footer .sources{ font-size:.84rem; color:hsl(var(--ink-3)); margin-block-start:var(--s4); max-width:var(--maxprose); }
+footer .sources-detail{ font-size:.84rem; color:hsl(var(--ink-3)); margin-block-start:var(--s3); max-width:var(--maxprose); }
+footer .sources-detail summary{ cursor:pointer; color:hsl(var(--bronze) / .92); padding-block:var(--s1); }
+footer .sources-detail summary:hover{ color:hsl(var(--bronze)); }
+footer .sources-detail ul{ list-style:none; margin-block-start:var(--s3); padding:0; display:grid; gap:var(--s2); line-height:1.5; }
+footer .sources-detail a{ color:hsl(var(--bronze)); text-underline-offset:3px; }
+footer .credit{ margin-block-start:var(--s8); display:flex; align-items:center; gap:var(--s2); color:hsl(var(--ink-3)); }
+footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; color:hsl(var(--bronze)); font-size:1.2rem; }
+
+/* ---------- THUMB-ZONE LAUNCHER ---------- */
+.launcher{
+  position:fixed; inset-block-end:max(var(--s5), env(safe-area-inset-bottom)); inset-inline:0;
+  display:flex; justify-content:center; z-index:45; pointer-events:none;
+  opacity:0; transform:translateY(14px); visibility:hidden;
+  transition:opacity 420ms var(--ease), transform 420ms var(--ease), visibility 0s linear 420ms;
+}
+.launcher.show{
+  opacity:1; transform:none; visibility:visible;
+  transition:opacity 420ms var(--ease), transform 420ms var(--ease), visibility 0s;
+}
+@media (prefers-reduced-motion: reduce){
+  .launcher{ transform:none; transition:opacity 120ms linear, visibility 0s linear 120ms; }
+  .launcher.show{ transition:opacity 120ms linear, visibility 0s; }
+}
+.launcher-btn{
+  pointer-events:auto; appearance:none; cursor:pointer; font-family:inherit; font-weight:700;
+  color:hsl(28 28% 12%); background:hsl(var(--bronze)); border:0; border-radius:var(--r-pill);
+  min-height:52px; padding:0 var(--s6) 0 var(--s5); display:inline-flex; align-items:center; gap:var(--s2);
+  box-shadow:0 14px 34px -10px hsl(var(--bronze) / .6), 0 2px 0 hsl(40 30% 100% / .15) inset;
+  transition:transform 280ms var(--ease), box-shadow 280ms var(--ease);
+}
+.launcher-btn:hover{ transform:translateY(-2px); box-shadow:0 18px 44px -10px hsl(var(--bronze) / .75); }
+.launcher-btn svg{ width:22px; height:22px; }
+
+/* ---------- BOTTOM SHEET + DIALOGS ---------- */
+.scrim{
+  position:fixed; inset:0; z-index:50; background:hsl(20 40% 3% / .6);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  opacity:0; visibility:hidden; transition:opacity 360ms var(--ease), visibility 360ms var(--ease);
+}
+.scrim.open{ opacity:1; visibility:visible; }
+
+.sheet{
+  position:fixed; inset-inline:0; inset-block-end:0; z-index:51;
+  background:hsl(var(--bg-2)); border-radius:26px 26px 0 0;
+  border-block-start:1px solid hsl(var(--line));
+  box-shadow:0 -20px 60px -20px hsl(20 40% 1% / .8);
+  transform:translateY(100%); transition:transform 420ms var(--ease);
+  max-height:92dvh; max-height:92vh; overflow-y:auto; overscroll-behavior:contain;
+  padding:var(--s4) var(--s5) max(var(--s8), env(safe-area-inset-bottom));
+}
+.sheet.open{ transform:none; }
+@media (prefers-reduced-motion: reduce){ .scrim, .sheet{ transition:none; } }
+.sheet-grab{ width:44px; height:5px; border-radius:99px; background:hsl(var(--line)); margin:var(--s2) auto var(--s4); }
+.sheet-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  margin-block-end:var(--s5); padding-block-end:var(--s4); border-block-end:1px solid hsl(var(--line) / .7); }
+.sheet-head h2{ font-size:1.5rem; }
+.sheet-close{
+  appearance:none; cursor:pointer; width:40px; height:40px; min-width:40px; border-radius:var(--r-pill);
+  background:hsl(var(--bg-3)); border:1px solid hsl(var(--line)); color:hsl(var(--ink-2));
+  display:grid; place-items:center; transition:all 240ms var(--ease);
+}
+.sheet-close:hover{ color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .5); }
+.sheet-close svg{ width:18px; height:18px; }
+@media (min-width:640px){
+  .sheet{ max-width:560px; margin-inline:auto; inset-inline:0; border-radius:26px; inset-block-end:auto;
+    top:50%; transform:translateY(-44%) scale(.96); opacity:0; max-height:88vh; }
+  .sheet.open{ transform:translateY(-50%) scale(1); opacity:1; }
+}
+
+/* tool launcher list (inside main sheet) */
+.tool-list{ display:flex; flex-direction:column; gap:var(--s3); }
+.tool-item{
+  display:flex; align-items:center; gap:var(--s4); text-align:start; width:100%;
+  appearance:none; cursor:pointer; font-family:inherit; color:hsl(var(--ink));
+  background:hsl(var(--bg-3) / .7); border:1px solid hsl(var(--line)); border-radius:18px;
+  padding:var(--s4) var(--s5); transition:all 260ms var(--ease); min-height:64px;
+}
+.tool-item:hover{ border-color:hsl(var(--bronze) / .5); transform:translateY(-2px); background:hsl(var(--bg-3)); }
+.tool-item .t-ic{ width:42px; height:42px; min-width:42px; border-radius:13px; display:grid; place-items:center;
+  background:hsl(var(--bronze) / .12); color:hsl(var(--bronze)); }
+.tool-item .t-ic svg{ width:22px; height:22px; }
+.tool-item .t-txt{ flex:1; min-width:0; }
+.tool-item .t-txt strong{ display:block; font-size:1.05rem; }
+.tool-item .t-txt span{ font-size:.86rem; color:hsl(var(--ink-3)); }
+.tool-item .t-arr{ color:hsl(var(--ink-3)); }
+
+/* generic tool sheet inner */
+.tool-section{ margin-block-start:var(--s4); }
+.tool-label{ font-size:.9rem; font-weight:600; color:hsl(var(--ink-2)); margin-block-end:var(--s3); display:block; }
+.chips{ display:flex; flex-wrap:wrap; gap:var(--s2); }
+.chip{
+  appearance:none; cursor:pointer; font-family:inherit; font-size:.92rem; font-weight:600;
+  color:hsl(var(--ink-2)); background:hsl(var(--bg-3)); border:1px solid hsl(var(--line));
+  border-radius:var(--r-pill); padding:9px 16px; min-height:44px; transition:all 240ms var(--ease);
+}
+.chip:hover{ border-color:hsl(var(--bronze) / .5); color:hsl(var(--ink)); background:hsl(var(--bronze) / .06); }
+.chip[aria-pressed="true"]{ background:hsl(var(--bronze)); color:hsl(28 28% 12%); border-color:hsl(var(--bronze));
+  box-shadow:0 6px 16px -6px hsl(var(--bronze) / .55); }
+.chip[aria-pressed="true"]:hover{ background:hsl(var(--bronze)); }
+
+/* result card inside tools */
+.result{
+  margin-block-start:var(--s6); padding:var(--s5); border-radius:18px;
+  background:hsl(var(--bg-3) / .7); border:1px solid hsl(var(--bronze) / .25); box-shadow:var(--shadow-card);
+}
+.result h3{ color:hsl(var(--bronze)); margin-block-end:var(--s2); }
+.result .why{ color:hsl(var(--ink-2)); font-size:.95rem; margin-block-end:var(--s3); }
+.result .meta{ display:flex; gap:var(--s2); margin-block-end:var(--s3); flex-wrap:wrap; }
+
+/* ---------- RESONANCE SESSION ---------- */
+.res-stage{ position:relative; display:grid; place-items:center; margin-block:var(--s6); min-height:300px; }
+.res-rings{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
+.res-ring{ position:absolute; border:1.5px solid hsl(var(--bronze) / .4); border-radius:50%; width:120px; height:120px; opacity:0; }
+.res-ring.pulse{ animation:resRing 6s linear infinite; }
+.res-ring.r2{ animation-delay:2s; } .res-ring.r3{ animation-delay:4s; }
+@keyframes resRing{ 0%{ transform:scale(.7); opacity:.55;} 100%{ transform:scale(2.4); opacity:0;} }
+.orb{
+  width:120px; height:120px; border-radius:50%; position:relative; z-index:2;
+  background:radial-gradient(circle at 38% 32%, hsl(var(--bronze) / .9), hsl(var(--copper) / .55) 60%, hsl(20 50% 22% / .6));
+  box-shadow:0 0 0 1px hsl(var(--bronze) / .3) inset;
+  transition:transform 4s var(--ease);
+}
+/* seamless circular halo that scales with the orb — replaces the hard-edged
+   box-shadow glow that read as a faint rectangle against the flat sheet bg */
+.orb::after{
+  content:""; position:absolute; left:50%; top:50%;
+  width:300%; height:300%; transform:translate(-50%,-50%);
+  border-radius:50%; pointer-events:none; z-index:-1;
+  background:radial-gradient(circle at 50% 50%,
+    hsl(38 72% 56% / .42) 0%, hsl(32 62% 46% / .20) 22%,
+    hsl(28 56% 40% / .07) 40%, transparent 62%);
+  transition:opacity 4s var(--ease);
+}
+.orb.inhale{ transform:scale(1.55); box-shadow:0 0 0 1px hsl(var(--bronze) / .4) inset; }
+.orb.inhale::after{ opacity:1.15; }
+.orb.exhale{ transform:scale(1); transition-duration:6s; }
+.orb.exhale::after{ opacity:.85; transition-duration:6s; }
+.orb.hold{ transition-duration:1s; }
+@media (prefers-reduced-motion: reduce){
+  .res-ring.pulse{ animation:none; opacity:.25; }
+  .orb{ transition:opacity 600ms ease, transform 600ms ease; }
+  .orb.inhale{ transform:scale(1.2); }
+}
+.res-cue{ font-family:"Frank Ruhl Libre", serif; font-size:1.6rem; color:hsl(var(--ink)); min-height:1.4em; text-align:center; transition:opacity 400ms var(--ease); }
+.res-strike-cue{ font-size:1rem; color:hsl(var(--bronze)); min-height:1.4em; text-align:center; font-weight:600; }
+.res-timer{ font-variant-numeric:tabular-nums; font-size:1.05rem; color:hsl(var(--ink-2)); text-align:center; letter-spacing:.05em; }
+.res-controls{ display:flex; flex-direction:column; gap:var(--s4); }
+.seg{ display:flex; gap:var(--s2); }
+.seg .chip{ flex:1; }
+.res-msg{ text-align:center; font-family:"Frank Ruhl Libre", serif; font-size:1.4rem; color:hsl(var(--bronze)); min-height:1.5em; }
+
+/* troubleshooter */
+.ts-step{ animation:fadeIn 400ms var(--ease); }
+@keyframes fadeIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+@media (prefers-reduced-motion: reduce){ .ts-step{ animation:none; } }
+.ts-result .row{ margin-block-start:var(--s4); }
+.ts-result .row .k{ font-size:.8rem; font-weight:700; letter-spacing:.1em; color:hsl(var(--bronze)); }
+.ts-result .row .v{ color:hsl(var(--ink)); margin-block-start:2px; }
+.ts-reassure{ margin-block-start:var(--s5); padding:var(--s4); border-radius:14px; background:hsl(var(--ok) / .08);
+  border:1px solid hsl(var(--ok) / .25); color:hsl(var(--ink-2)); font-size:.95rem; }
+
+/* toast */
+.toast{
+  position:fixed; inset-block-end:max(96px, calc(env(safe-area-inset-bottom) + 88px)); inset-inline:0;
+  margin-inline:auto; width:max-content; max-width:90vw; z-index:60;
+  background:hsl(var(--bg-3)); color:hsl(var(--ink)); border:1px solid hsl(var(--bronze) / .35);
+  border-radius:var(--r-pill); padding:11px 20px; font-size:.92rem; box-shadow:var(--shadow-raised);
+  opacity:0; transform:translateY(10px); transition:opacity 360ms var(--ease), transform 360ms var(--ease); pointer-events:none;
+}
+.toast.show{ opacity:1; transform:none; }
+
+.visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.divider{ width:100%; height:1px; background:linear-gradient(90deg, transparent, hsl(var(--line)), transparent); margin-block:var(--s8); border:0; }
+</style>
+</head>
+
+<body data-lens="me">
+
+<!-- atmosphere layers -->
+<div class="atmos" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <!-- PLACEHOLDER: seller may replace wordmark "הֵד" + sub with their own brand/logo -->
+  <div class="brand">
+    <span class="mark">הֵד</span>
+    <span class="sub">מלווה הקערה</span>
+  </div>
+  <div class="topbar-tools">
+    <div class="lens" role="group" aria-label="בחירת מצב תצוגה">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" id="lensMe" aria-pressed="true">לי</button>
+      <button type="button" id="lensPro" aria-pressed="false">למנחים</button>
+    </div>
+    <button type="button" class="icon-btn" id="muteBtn" aria-pressed="false" aria-label="השתקת קול / הפעלת קול">
+      <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
+      <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m23 9-6 6"/><path d="m17 9 6 6"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ MOVEMENT 0 — ARRIVAL ============ -->
+  <section class="hero" id="arrival" aria-labelledby="heroH1">
+    <p class="eyebrow">הקערה שלך הגיעה</p>
+    <h1 id="heroH1">יש קול שמחכה בתוך המתכת</h1>
+    <p class="hero-sub" id="heroSub">נגעת בקערה, ועכשיו תני לה לדבר. הקישי על הקערה — והקשיבי.</p>
+
+    <div class="bowl-stage">
+      <div class="bowl-rings" aria-hidden="true">
+        <span class="ring" id="ring1"></span>
+        <span class="ring" id="ring2"></span>
+        <span class="ring" id="ring3"></span>
+      </div>
+      <button type="button" class="bowl-btn" id="bowlBtn" aria-label="הקישי כדי לשמוע את הקערה">
+        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <!-- seamless radial glow: r=50% of the box, fully transparent before the edge -->
+            <radialGradient id="glowG" cx="50%" cy="46%" r="50%">
+              <stop offset="0%"  stop-color="hsl(40 80% 64% / .66)"/>
+              <stop offset="30%" stop-color="hsl(34 66% 50% / .28)"/>
+              <stop offset="62%" stop-color="hsl(28 58% 40% / .09)"/>
+              <stop offset="100%" stop-color="hsl(28 56% 38% / 0)"/>
+            </radialGradient>
+            <!-- soft specular highlight on the front body shoulder -->
+            <radialGradient id="specG" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stop-color="hsl(44 80% 90% / .5)"/>
+              <stop offset="100%" stop-color="hsl(44 80% 90% / 0)"/>
+            </radialGradient>
+            <!-- bowl outer body: warm bronze with depth toward the base -->
+            <linearGradient id="bowlG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="hsl(40 66% 66%)"/>
+              <stop offset="30%"  stop-color="hsl(34 60% 52%)"/>
+              <stop offset="68%"  stop-color="hsl(26 54% 36%)"/>
+              <stop offset="100%" stop-color="hsl(20 50% 24%)"/>
+            </linearGradient>
+            <!-- left-to-right body modeling: catches light on one shoulder, shades the other -->
+            <linearGradient id="bowlShade" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="hsl(40 60% 78% / .42)"/>
+              <stop offset="30%"  stop-color="hsl(40 60% 78% / 0)"/>
+              <stop offset="72%"  stop-color="hsl(20 50% 14% / 0)"/>
+              <stop offset="100%" stop-color="hsl(20 50% 12% / .40)"/>
+            </linearGradient>
+            <!-- bright metallic rim, brightest at the top arc -->
+            <linearGradient id="rimG" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="hsl(36 56% 52%)"/>
+              <stop offset="32%"  stop-color="hsl(40 78% 82%)"/>
+              <stop offset="62%"  stop-color="hsl(42 84% 88%)"/>
+              <stop offset="100%" stop-color="hsl(30 56% 46%)"/>
+            </linearGradient>
+            <!-- inner cavity: deep, with light pooling toward the far rim -->
+            <radialGradient id="innerG" cx="50%" cy="32%" r="78%">
+              <stop offset="0%"   stop-color="hsl(28 44% 32%)"/>
+              <stop offset="58%"  stop-color="hsl(24 50% 20%)"/>
+              <stop offset="100%" stop-color="hsl(20 52% 13%)"/>
+            </radialGradient>
+          </defs>
+
+          <!-- seamless glow behind everything -->
+          <circle class="bowl-glow" cx="160" cy="150" r="160" fill="url(#glowG)" opacity=".4"/>
+
+          <g class="bowl-body">
+            <!-- soft contact shadow grounding the bowl -->
+            <ellipse cx="160" cy="268" rx="78" ry="13" fill="hsl(20 50% 4% / .45)"/>
+
+            <!-- outer body seen slightly from above: rounded U with a full belly -->
+            <path d="M68 134 C 70 210 110 262 160 262 C 210 262 250 210 252 134 A 92 27 0 0 1 68 134 Z" fill="url(#bowlG)"/>
+            <!-- left/right modeling overlay -->
+            <path d="M68 134 C 70 210 110 262 160 262 C 210 262 250 210 252 134 A 92 27 0 0 1 68 134 Z" fill="url(#bowlShade)"/>
+            <!-- vertical sheen catching the light near the front face -->
+            <path d="M100 166 C 104 220 130 246 160 246 C 190 246 216 220 220 166" fill="none" stroke="hsl(42 70% 86% / .24)" stroke-width="4" stroke-linecap="round"/>
+            <!-- soft specular bloom on the lit shoulder -->
+            <ellipse cx="128" cy="178" rx="34" ry="46" fill="url(#specG)" transform="rotate(-18 128 178)"/>
+
+            <!-- inner cavity (dish) -->
+            <ellipse cx="160" cy="134" rx="92" ry="27" fill="url(#innerG)"/>
+            <!-- inner-shadow lip just inside the rim -->
+            <ellipse cx="160" cy="136" rx="84" ry="22" fill="none" stroke="hsl(20 52% 10% / .55)" stroke-width="3"/>
+            <!-- pooled light on the far inner wall -->
+            <path d="M96 128 Q160 100 224 128" fill="none" stroke="hsl(38 56% 56% / .30)" stroke-width="6" stroke-linecap="round"/>
+
+            <!-- bright metallic rim -->
+            <ellipse cx="160" cy="134" rx="92" ry="27" fill="none" stroke="url(#rimG)" stroke-width="5.5"/>
+            <!-- crisp top-edge highlight on the rim -->
+            <path d="M82 126 Q160 102 238 126" fill="none" stroke="hsl(44 86% 92% / .7)" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </button>
+    </div>
+
+    <p class="sound-note" id="soundNote" aria-live="polite"></p>
+
+    <div class="hero-cta" id="heroCta">
+      <a class="btn btn-primary" href="#first-contact" id="startBtn">נתחיל <span class="arr">›</span></a>
+    </div>
+
+    <div class="fork" id="fork">
+      <span class="q">מי מחזיק/ה בקערה?</span>
+      <div class="fork-choices" role="group" aria-label="מי מחזיק בקערה">
+        <button type="button" id="forkMe" aria-pressed="false">הבאתי אותה לעצמי</button>
+        <button type="button" id="forkPro" aria-pressed="false">אני מלווה אחרים</button>
+      </div>
+    </div>
+
+    <p class="hero-foot">אפשר להמשיך בקצב שלך. אין כאן שום דבר שחייבים.</p>
+
+    <a class="scroll-hint" href="#first-contact" aria-label="גללו למטה כדי להתחיל">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </a>
+  </section>
+
+  <!-- ============ MOVEMENT 1 — FIRST CONTACT ============ -->
+  <section class="movement" id="first-contact" aria-labelledby="m1h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">מגע ראשון</p>
+        <h2 id="m1h">אז מה עושים עם זה עכשיו?</h2>
+        <p class="lead">שאלה הוגנת. קיבלת חפץ מתכת יפהפה — ועכשיו מה. הנה כל מה שצריך כדי להתחיל, בלי להסתבך.</p>
+      </div>
+
+      <div class="contact-blocks">
+        <div class="cblock reveal">
+          <h3><span class="num">1</span>איך מחזיקים</h3>
+          <p>הניחי את הקערה על כף יד פתוחה ושטוחה, או על כרית/טבעת. סוד אחד חשוב: אל תעטפי את הדופן באצבעות. כל מגע בדופן הרוטטת "בולע" את הצליל. תני לה לרטוט חופשי.</p>
+        </div>
+        <div class="cblock feature reveal">
+          <h3><span class="num">2</span>שתי דרכים להשמיע אותה</h3>
+          <p><strong>הקשה:</strong> הקישי בעדינות על הדופן החיצונית עם המקל, בערך בזווית, וקבלי צליל אחד שמתפשט ודועך. <strong>שירה:</strong> הצמידי את המקל לדופן החיצונית של השפה והחליקי במעגלים אטיים וקבועים — הצליל יתעורר ויתמלא.</p>
+        </div>
+        <div class="cblock reveal">
+          <h3><span class="num">3</span>טיפ שמציל מתסכול</h3>
+          <p>קודם הקישי כדי "להעיר" את הקערה, ורק אז התחילי לחכך את השפה. וזכרי: קערה ש"לא שרה" היא כמעט תמיד עניין של מקל, מהירות או לחץ — לא קערה מקולקלת.</p>
+        </div>
+      </div>
+
+      <div class="cta-row reveal">
+        <button type="button" class="btn btn-primary" data-open-generator data-preset="rest5">נסי תרגול ראשון עכשיו <span class="arr">›</span></button>
+        <button type="button" class="btn btn-secondary" data-open-troubleshooter>הקערה שלי לא שרה</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MOVEMENT 2 — WHY IT SINGS ============ -->
+  <section class="movement" id="why-sings" aria-labelledby="m2h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">הפיזיקה של הצליל</p>
+        <h2 id="m2h">למה בכלל יש לזה קול?</h2>
+        <p class="lead">הקערה היא קרוב משפחה של פעמון — ושל כוס יין שמזמזמת כשמעבירים אצבע על השפה. אותה פיזיקה בדיוק.</p>
+      </div>
+
+      <div class="explainer reveal">
+        <h3>התהודה והשפה שמתעגלת</h3>
+        <p>כשמקישים, דופן המתכת רוטטת בתבניות קבועות. בתבנית הבסיסית השפה נמתחת מעיגול לאליפסה וחזרה — ארבע נקודות שזזות הכי הרבה, וארבע שנחות במקום. זאת ה"קול" העיקרי של הקערה.</p>
+        <div class="tinyvis" aria-hidden="true">
+          <svg viewBox="0 0 160 90" width="180" height="100">
+            <ellipse id="modeEllipse" cx="80" cy="45" rx="50" ry="30" fill="none" stroke="hsl(36 68% 58% / .8)" stroke-width="2">
+              <animate attributeName="rx" values="40;55;40" dur="3.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1" keyTimes="0;0.5;1"/>
+              <animate attributeName="ry" values="35;22;35" dur="3.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1" keyTimes="0;0.5;1"/>
+            </ellipse>
+            <g fill="hsl(36 68% 58%)">
+              <circle cx="80" cy="12" r="3"/><circle cx="80" cy="78" r="3"/>
+              <circle cx="28" cy="45" r="3"/><circle cx="132" cy="45" r="3"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="explainer plain reveal">
+        <h3>הצלילים העליונים ש"לא מתיישבים"</h3>
+        <p>בכלי מוזיקלי רגיל הצלילים העליונים הם כפולות מסודרות של צליל הבסיס. בקערה הם לא — היחסים אינם שלמים. בדיוק בגלל זה הצליל נשמע מתכתי, "לא־מהעולם־הזה", ולא כמו תו ששרים.</p>
+      </div>
+
+      <div class="explainer reveal">
+        <h3>הריצוד — והאמת הקטנה והיפה שמאחוריו</h3>
+        <p>אותו ריצוד עדין, ה"וואה־וואה" שממלא את הצליל, הוא לא "פעימת חיים" מסתורית. הוא אקוסטיקה טהורה: קערה שיוצרה ביד אף פעם אינה סימטרית לחלוטין, ואי־הסימטריה הזעירה מפצלת את צליל הבסיס לשני צלילים קרובים מאוד שמתנגשים זה בזה. זה כל הסוד — וזה יפה דווקא מפני שהוא אמיתי.</p>
+        <div class="pro-add" data-lens-el="pro">
+          <strong>נמדד בקערה אמיתית:</strong> צליל בסיס של <bdi>334.1</bdi> ו־<bdi>335.5</bdi> הרץ יחד — הפרש שמייצר ריצוד של כ־<bdi>1.4</bdi> פעימות בשנייה.
+        </div>
+      </div>
+
+      <div class="explainer plain reveal">
+        <h3>כשממלאים אותה מים</h3>
+        <p>מלאי מעט מים והַשמיעי — פני המים יתחילו לרקוד, ובעוצמה חזקה אפילו לקפוץ לטיפות זעירות. זו תופעת גלים אמיתית (גלי פאראדיי, שתוארה כבר ב־<bdi>1831</bdi>), לא קסם. מרהיב יותר דווקא כשמבינים מה קורה.</p>
+      </div>
+
+      <div class="pro-block reveal" data-lens-el="pro">
+        <span class="pro-tag">למנחים</span>
+        <h3>מנגנון הצליל המתמשך</h3>
+        <p>החיכוך של המקל "נתפס ומשתחרר" עשרות פעמים בשנייה ומזרים אנרגיה לדופן — בדיוק כמו קשת על מיתר כינור. הוא עובד רק כשהחיכוך הסטטי גדול מהחיכוך בתנועה, ולכן מקל עטוף זמש/עור "שר" בקלות ומקל עץ חלק מחליק.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MOVEMENT 3 — WHAT IT REALLY IS ============ -->
+  <section class="movement honesty" id="origins" aria-labelledby="m3h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">אמת לפני שיווק</p>
+        <h2 id="m3h">רגע של כנות על "קערה טיבטית"</h2>
+        <p class="lead">אפשר למכור לך אגדה. אנחנו מעדיפים לספר לך את האמת — היא מכובדת יותר, ומעניינת לא פחות.</p>
+      </div>
+
+      <div class="explainer reveal">
+        <h3>הסיפור ה"עתיק" הוא בעצם מודרני</h3>
+        <p>הקשר בין הקערות ל"טקס טיבטי עתיק" הוא במידה רבה המצאה מערבית משנות ה־70 של המאה ה־20. אין עדות היסטורית ממשית לשימוש פולחני בקערות־צליל בטיבט; קטלוגים של כלי הנגינה הפולחניים הטיבטיים פשוט אינם כוללים אותן. קערות ישנות שימשו, ככל הנראה, ככלי בית וכלי הקרבה — לא ככלי צליל.</p>
+      </div>
+
+      <div class="explainer reveal">
+        <h3>מאיפה הן באמת מגיעות</h3>
+        <p>רוב הקערות מיוצרות היום בנפאל, בהודו ובסין. "הימלאיה" הוא תיאור הוגן יותר מ"טיבט". וזה לא גורע מהן דבר — הן עדיין חפצי מתכת יפים ובעלי צליל יוצא דופן.</p>
+      </div>
+
+      <div class="explainer reveal">
+        <h3>"שבע מתכות"? בעיקר ברונזה.</h3>
+        <p>הסיפור על שבע מתכות כנגד שבעה כוכבי לכת הוא סמליקה יפה — אבל לא הרכב הקערה. בדיקות מתכת עצמאיות של קערות רבות מראות שוב ושוב ברונזה: בערך <bdi>80%</bdi> נחושת ו־<bdi>20%</bdi> בדיל, לעיתים עקבות ברזל — וכמעט אף פעם לא זהב, כסף או כספית. נכבד את הסמל; לא נמכור אותו כעובדה.</p>
+      </div>
+
+      <div class="explainer reveal">
+        <h3>עבודת יד מול ייצור — וזה כן נשמע</h3>
+        <p>קערה מרוקעת ביד יוצאת מעט "לא מושלמת" — והדופן הלא־אחידה היא בדיוק מה שמעניק לה צליל חם, עשיר ורב־שכבתי עם ריצוד. קערה תעשייתית, אחידה, נשמעת בהירה אך פשוטה יותר, עם פחות צלילים עליונים. אי־השלמות היא התכונה.</p>
+      </div>
+
+      <p class="closing reveal">כשמוֹכר/ת יודע/ת להבחין בין מסורת לשיווק — אפשר לסמוך עליו/ה גם על השאר.</p>
+    </div>
+  </section>
+
+  <!-- ============ MOVEMENT 4 — PRACTICE ============ -->
+  <section class="movement" id="practice" aria-labelledby="m4h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">התרגול</p>
+        <h2 id="m4h">תרגול אחד, קערה אחת, עכשיו</h2>
+        <p class="lead">אין צורך באוסף ולא בידע מוקדם. קערה אחת מספיקה לכל מה שחשוב.</p>
+        <div class="cta-row">
+          <button type="button" class="btn btn-primary" data-open-generator>בנו לי תרגול לפי הזמן והמצב <span class="arr">›</span></button>
+        </div>
+      </div>
+
+      <div class="lib reveal" id="practiceLib">
+        <!-- cards injected by JS from the practice library -->
+      </div>
+
+      <div class="pro-block reveal" data-lens-el="pro">
+        <span class="pro-tag">למנחים</span>
+        <h3>קערה אחת מול מטופל/קבוצה</h3>
+        <p>פתיחה וסגירה של שיעור בהקשה אחת; נקודת מיקוד במדיטציה מודרכת; עבודת רגיעה פרטנית; מרכז לסשן אינטימי קטן. אוסף מאפשר "אמבט צליל" מרובד — אבל קערה אחת איכותית מספיקה בהחלט לליבה.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MOVEMENT 5 — CARE ============ -->
+  <section class="movement" id="care" aria-labelledby="m5h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">טיפוח</p>
+        <h2 id="m5h">לשמור עליה — בלי חרדה</h2>
+        <p class="lead">ניגוב במטלית רכה ויבשה. לכלוך עיקש? מעט מים פושרים וטיפת סבון עדין על המטלית (לא על הקערה), ואז לייבש היטב. לאחסן במקום יבש על הכרית או בשקית בד נושמת. וזהו, בגדול.</p>
+      </div>
+
+      <div class="dodont reveal">
+        <div class="dd-col yes">
+          <h4>כן</h4>
+          <ul>
+            <li>מטלית רכה</li>
+            <li>לייבש מיד</li>
+            <li>לאחסן יבש</li>
+            <li>להסיר טבעות/צמידים לפני נגינה</li>
+          </ul>
+        </div>
+        <div class="dd-col no">
+          <h4>להימנע</h4>
+          <ul>
+            <li>צמר פלדה ושפשופים מגרדים</li>
+            <li>השריה/מדיח/מים חמים</li>
+            <li>חומרים חריפים וחומצות (לימון/חומץ) כשגרה</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="accordion reveal">
+        <details class="acc">
+          <summary>פטינה זו לא בעיה <span class="chev" aria-hidden="true">▾</span></summary>
+          <div class="acc-body">הצבע הכהה שמתפתח עם הזמן הוא טבעי, לרוב רצוי, ואינו פוגע בצליל. אין חובה למרק. אם בכל זאת — נדיר, בעדינות, ובתכשיר ייעודי לברונזה/פליז בלבד.</div>
+        </details>
+        <details class="acc">
+          <summary>השפה היא הכי חשובה לצליל <span class="chev" aria-hidden="true">▾</span></summary>
+          <div class="acc-body">שמרי על שפת הקערה נקייה משאריות; הסירי תכשיטים לפני נגינה; כרית/טבעת בקוטר של כ־<bdi>85%</bdi> מהקערה תומכת בלי לחנוק את הרטט.</div>
+        </details>
+        <details class="acc">
+          <summary>טיפול במקל <span class="chev" aria-hidden="true">▾</span></summary>
+          <div class="acc-body">מקל זמש/עור — לשמור יבש, להבריש בלבד, לא לרחוץ; אפשר לסובב את צד המגע כשנשחק. מקל עץ — ניגוב ומדי פעם טיפת שמן מאכל. מקל חדש "מתרכך" עם השימוש ואז שר טוב יותר.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MOVEMENT 6 — FACILITATOR'S KIT (PRO ONLY) ============ -->
+  <section class="movement" id="facilitator" aria-labelledby="m6h" data-lens-el="pro">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">למנחים</p>
+        <h2 id="m6h">ארגז כלים למנחה</h2>
+        <p class="lead">הדברים האלה נכתבו עבורך — אם את/ה מלמד/ת, מנחה קבוצה או עובד/ת טיפולית. דיוק ואחריות לפני הכול.</p>
+      </div>
+
+      <div class="pro-block reveal">
+        <h3>מבנה סשן שאפשר לאמץ</h3>
+        <p>הגעה ← ירידה פנימה ← עומק ← התרחבות ← חזרה (בערך <bdi>5–10</bdi> דק' לכל שלב). עקרונות: לא לכפות הקשה; לתת למקל להחליק; להתייחס לשתיקה כזמן עיבוד פעיל; כ־<bdi>60–90</bdi> שניות שקט אחרי הצליל האחרון; מעט מילים; לא יותר משלוש קערות בו־זמנית.</p>
+      </div>
+
+      <div class="pro-block reveal">
+        <h3>שילוב בעבודה קיימת</h3>
+        <p>הקשה אחת לפתיחת שיעור יוגה ולסגירת שַוואסְנָה; פורמט נפוץ — יין־יוגה ארוך ואחריו <bdi>15–30</bdi> דק' צליל; טקס פתיחה קצר וסגירה בהודיה.</p>
+      </div>
+
+      <div class="pro-block reveal">
+        <h3>שפה אחראית (להשאיל כלשונה)</h3>
+        <p><strong>מותר לומר:</strong> "תרגול הקשור ברגיעה ובהפחתת מתח מדווח, עם סימני הרגעות גופניים קצרי־טווח במחקרים מסוימים; העדויות מוקדמות ומוגבלות."</p>
+        <p style="margin-block-start:var(--s3)"><strong>אסור לטעון:</strong> ריפוי, "כיוון צ'אקרות" כעובדה, "תדר שמרפא DNA", ניקוי רעלים, או הבטחה מספרית.</p>
+      </div>
+
+      <div class="pro-block reveal">
+        <h3>בדיקת התוויות נגד</h3>
+        <p style="color:hsl(var(--ink-3)); font-size:.9rem; margin-block-end:var(--s3)">לפני סשן, ובמיוחד לפני הנחת קערה על הגוף:</p>
+        <ul class="pro-list">
+          <li>קוצב לב / שתלים אלקטרוניים</li>
+          <li>אפילפסיה (במיוחד מושרית־צליל)</li>
+          <li>היריון (זהירות יתר; לא להניח קערות על הגוף; להושיב הרחק מהכלים)</li>
+          <li>ניתוח / פציעת ראש לאחרונה</li>
+          <li>מצבי לב / כלי דם משמעותיים</li>
+        </ul>
+        <p style="margin-block-start:var(--s3)">בכל אחד מהמקרים האלה → להפנות להיוועצות רפואית.</p>
+      </div>
+
+      <div class="pro-block reveal">
+        <h3>כשעולה תגובה רגשית</h3>
+        <p>להציע מים והנחיה להתארקות — לא פרשנות. להישאר צינור, לא מאבחן/ת.</p>
+      </div>
+
+      <p class="muted small reveal" style="margin-block-start:var(--s6)">כל המקורות מבוססי מחקר; הניסוח נשמר זהיר בכוונה כדי שתוכל/י לעמוד מאחוריו מול מטופלים.</p>
+    </div>
+  </section>
+
+  <!-- ============ MOVEMENT 7 — THE MAKER (PLACEHOLDERS) ============ -->
+  <section class="movement maker" id="maker" aria-labelledby="m7h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow sec-eyebrow">יצירת קשר</p>
+        <h2 id="m7h">נעים להכיר — האדם שמאחורי הקערה</h2>
+      </div>
+
+      <!-- PLACEHOLDER: personal story of the product owner. Replace bracketed text below. -->
+      <div class="placeholder reveal">
+        <p><em>[[ סיפור אישי קצר של בעל/ת המוצר — מאיפה הקשר לקערות, למה זה חשוב לה/לו ]]</em></p>
+      </div>
+
+      <!-- PLACEHOLDER: contact links. Replace hrefs and labels below. -->
+      <div class="contact-row reveal">
+        <!-- PLACEHOLDER: WhatsApp number -->
+        <a class="btn btn-primary" href="https://wa.me/[[מספר]]" rel="noopener">שלחו לי הודעה בוואטסאפ</a>
+        <!-- PLACEHOLDER: Instagram link -->
+        <a class="btn btn-secondary" href="#[[אינסטגרם]]" rel="noopener">[[אינסטגרם]]</a>
+        <!-- PLACEHOLDER: website / shop link -->
+        <a class="btn btn-secondary" href="#[[אתר]]" rel="noopener">[[אתר/חנות]]</a>
+        <!-- PLACEHOLDER: phone number -->
+        <a class="btn btn-secondary" href="tel:[[טלפון]]">[[טלפון]]</a>
+      </div>
+
+      <p class="warm reveal">יש לך שאלה על הקערה שלך? אני כאן. ממש כאן.</p>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="wrap">
+      <p class="disclaimer">הצלילים והתרגולים כאן הם תרגול רוגע ורווחה — לא טיפול רפואי. המחקר בתחום מוקדם ומוגבל, ואין בהם תחליף לייעוץ רפואי או נפשי מקצועי. אם יש מצב בריאותי (כולל אפילפסיה, מצב לבבי, קוצב לב, או היריון) — להיוועץ באיש מקצוע תחילה.</p>
+      <p class="sources">מבוסס על מחקר — בין המקורות: מחקר אקוסטי מ־<bdi>MIT</bdi> (<bdi>2011</bdi>), ניסוי מבוקר (<bdi>2023</bdi>) וסקירה שיטתית (<bdi>2025</bdi>).</p>
+      <details class="sources-detail">
+        <summary>המקורות המלאים</summary>
+        <ul>
+          <li>אקוסטיקה ופיזיקה: Terwagne &amp; Bush, <span dir="ltr">Nonlinearity</span> (2011) — <a dir="ltr" href="https://arxiv.org/abs/1106.5657" target="_blank" rel="noopener noreferrer">arxiv.org/abs/1106.5657</a></li>
+          <li>ניסוי מבוקר (RCT): Rio-Alamos ואחרים (2023) — <a dir="ltr" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9955072/" target="_blank" rel="noopener noreferrer">PMC9955072</a></li>
+          <li>סקירה שיטתית: Lin, Yang &amp; Wang, <span dir="ltr">Healthcare</span> (2025) — <a dir="ltr" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12385955/" target="_blank" rel="noopener noreferrer">PMC12385955</a></li>
+          <li>מדיטציית קערות: Goldsby ואחרים (2017) — <a dir="ltr" href="https://pubmed.ncbi.nlm.nih.gov/27694559/" target="_blank" rel="noopener noreferrer">PubMed 27694559</a></li>
+          <li>היסטוריה ומקור: Grimes, <span dir="ltr">Tricycle</span> (2020) — <a dir="ltr" href="https://tricycle.org/article/tibetan-singing-bowls/" target="_blank" rel="noopener noreferrer">tricycle.org</a></li>
+        </ul>
+      </details>
+      <div class="credit">
+        <span class="mark">הֵד</span>
+        <span class="small">מלווה הקערה · נבנה באהבה</span>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<!-- ============ THUMB-ZONE LAUNCHER ============ -->
+<div class="launcher">
+  <button type="button" class="launcher-btn" id="launcherBtn" aria-haspopup="dialog" aria-label="פתחו את ארגז הכלים">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <ellipse cx="12" cy="8" rx="8" ry="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M4.4 8 Q12 19 19.6 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    כלים
+  </button>
+</div>
+
+<!-- scrim shared by all sheets -->
+<div class="scrim" id="scrim"></div>
+
+<!-- ============ MAIN TOOLS SHEET ============ -->
+<div class="sheet" id="sheetTools" role="dialog" aria-modal="true" aria-labelledby="toolsTitle" hidden>
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="toolsTitle">כלים</h2>
+    <button type="button" class="sheet-close" data-close-sheet aria-label="סגירה">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="tool-list">
+    <button type="button" class="tool-item" data-open-resonance>
+      <span class="t-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity=".55"/><circle cx="12" cy="12" r="11" opacity=".3"/></svg></span>
+      <span class="t-txt"><strong>אמבט צליל</strong><span>נשימה וצליל מודרכים</span></span>
+      <span class="t-arr">‹</span>
+    </button>
+    <button type="button" class="tool-item" data-open-generator>
+      <span class="t-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 3v4M12 21v-2M5 12H3M21 12h-4"/><circle cx="12" cy="12" r="4"/></svg></span>
+      <span class="t-txt"><strong>מחולל התרגול</strong><span>תרגול לפי זמן ומצב</span></span>
+      <span class="t-arr">‹</span>
+    </button>
+    <button type="button" class="tool-item" data-open-troubleshooter>
+      <span class="t-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+      <span class="t-txt"><strong>למה היא לא שרה</strong><span>אבחון ופתרון מהיר</span></span>
+      <span class="t-arr">‹</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ TOOL A — RESONANCE SESSION ============ -->
+<div class="sheet" id="sheetResonance" role="dialog" aria-modal="true" aria-labelledby="resTitle" hidden>
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="resTitle">אמבט צליל</h2>
+    <button type="button" class="sheet-close" data-close-sheet aria-label="סגירה">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- setup view -->
+  <div id="resSetup">
+    <p class="muted small" style="margin-block-end:var(--s4)">חוויית נשימה וצליל מודרכת — לקערה אחת. (״אמבט צליל״ קבוצתי מלא נבנה מכמה כלים יחד; כאן זה תרגול אישי אחד.)</p>
+    <div class="tool-section">
+      <label class="tool-label">כמה זמן?</label>
+      <div class="seg" id="resDuration" role="group" aria-label="משך הסשן">
+        <button type="button" class="chip" data-min="3">3 דק'</button>
+        <button type="button" class="chip" data-min="5" aria-pressed="true">5 דק'</button>
+        <button type="button" class="chip" data-min="10">10 דק'</button>
+      </div>
+    </div>
+    <div class="tool-section">
+      <label class="tool-label">איך לנגן?</label>
+      <div class="seg" id="resMode" role="group" aria-label="מצב נגינה">
+        <button type="button" class="chip" data-mode="ambient" aria-pressed="true">רקע מנגן</button>
+        <button type="button" class="chip" data-mode="bowl">עם הקערה שלי</button>
+      </div>
+    </div>
+    <p class="muted small" style="margin-block-start:var(--s4)">נשימה מאריכה־נשיפה (שאיפה 4 · החזקה 1 · נשיפה 6 שניות), שנוטה להרגיע.</p>
+    <div class="cta-row" style="margin-block-start:var(--s6)">
+      <button type="button" class="btn btn-primary" id="resStart" style="flex:1">התחילי</button>
+    </div>
+  </div>
+
+  <!-- active view -->
+  <div id="resActive" hidden>
+    <div class="res-stage">
+      <div class="res-rings" aria-hidden="true">
+        <span class="res-ring r1"></span>
+        <span class="res-ring r2"></span>
+        <span class="res-ring r3"></span>
+      </div>
+      <div class="orb" id="resOrb"></div>
+    </div>
+    <p class="res-cue" id="resCue" aria-live="polite">שאיפה…</p>
+    <p class="res-strike-cue" id="resStrikeCue" aria-live="polite"></p>
+    <p class="res-msg" id="resMsg"></p>
+    <p class="res-timer" id="resTimer" aria-live="off">5:00</p>
+    <div class="cta-row" style="margin-block-start:var(--s6); justify-content:center">
+      <button type="button" class="btn btn-tertiary" id="resStop">סיום מוקדם</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOOL B — PRACTICE GENERATOR ============ -->
+<div class="sheet" id="sheetGenerator" role="dialog" aria-modal="true" aria-labelledby="genTitle" hidden>
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="genTitle">מחולל התרגול</h2>
+    <button type="button" class="sheet-close" data-close-sheet aria-label="סגירה">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="tool-section">
+    <label class="tool-label">כמה זמן יש לך?</label>
+    <div class="chips" id="genTime" role="group" aria-label="זמן זמין">
+      <button type="button" class="chip" data-min="2">2 דק'</button>
+      <button type="button" class="chip" data-min="5" aria-pressed="true">5 דק'</button>
+      <button type="button" class="chip" data-min="10">10 דק'</button>
+      <button type="button" class="chip" data-min="15">15 דק'</button>
+    </div>
+  </div>
+
+  <div class="tool-section">
+    <label class="tool-label">מה את/ה צריך/ה עכשיו?</label>
+    <div class="chips" id="genIntent" role="group" aria-label="כוונה">
+      <button type="button" class="chip" data-intent="relax" aria-pressed="true">להירגע</button>
+      <button type="button" class="chip" data-intent="sleep">להירדם</button>
+      <button type="button" class="chip" data-intent="focus">להתרכז</button>
+      <button type="button" class="chip" data-intent="check">לבדוק את עצמי</button>
+      <button type="button" class="chip" data-intent="open" data-lens-el="pro">לפתוח שיעור</button>
+      <button type="button" class="chip" data-intent="close" data-lens-el="pro">לסגור שיעור</button>
+      <button type="button" class="chip" data-intent="oneonone" data-lens-el="pro">עבודה פרטנית</button>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button type="button" class="btn btn-primary" id="genRun" style="flex:1">בנו לי תרגול <span class="arr">›</span></button>
+  </div>
+
+  <div id="genResult" aria-live="polite"></div>
+</div>
+
+<!-- ============ TOOL C — TROUBLESHOOTER ============ -->
+<div class="sheet" id="sheetTrouble" role="dialog" aria-modal="true" aria-labelledby="tsTitle" hidden>
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="tsTitle">למה היא לא שרה</h2>
+    <button type="button" class="sheet-close" data-close-sheet aria-label="סגירה">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div id="tsBody"></div>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* =================================================================
+   מלווה הקערה — application JS
+   Organized into small modules: Audio, Lens, Nav/Reveal, Sheets,
+   Resonance, Generator, Troubleshooter, Library.
+   ================================================================= */
+
+(function(){
+
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const LS = {
+    get(k, def){ try{ const v = localStorage.getItem(k); return v===null?def:v; }catch(e){ return def; } },
+    set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  };
+
+  /* =============================================================
+     MODULE: AUDIO — synthesized singing-bowl tone (Web Audio API)
+     Lazy-init on first user gesture. Master mute persisted.
+     ============================================================= */
+  const Audio = (function(){
+    let ctx = null, master = null, reverb = null, reverbGain = null, dryGain = null, lowpass = null, compressor = null;
+    let available = true;
+    let muted = LS.get('hed.muted','0') === '1';
+    let rimNodes = null; // active rim oscillators
+
+    // inharmonic partial ratios + relative gains (from research)
+    const RATIOS = [1.0, 2.8, 5.2, 8.1];
+    const GAINS  = [1.0, 0.55, 0.35, 0.22];
+    // slight per-partial detune for the beating shimmer
+    const DETUNE = [0.006, 0.008, 0.005, 0.009];
+
+    function init(){
+      if (ctx) return true;
+      try{
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) throw new Error('no AudioContext');
+        ctx = new AC();
+
+        master = ctx.createGain();
+        master.gain.value = muted ? 0 : 0.9;
+
+        // compressor catches peaks when many oscillators + ping + reverb sum,
+        // so loud devices never clip the master ceiling.
+        compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -16;
+        compressor.knee.value = 24;
+        compressor.ratio.value = 4;
+        compressor.attack.value = 0.004;
+        compressor.release.value = 0.25;
+
+        // warm low-pass so it never gets harsh
+        lowpass = ctx.createBiquadFilter();
+        lowpass.type = 'lowpass';
+        lowpass.frequency.value = 3400;
+        lowpass.Q.value = 0.4;
+
+        // simple convolver reverb with a synthesized impulse
+        reverb = ctx.createConvolver();
+        reverb.buffer = makeImpulse(2.6, 2.4);
+        reverbGain = ctx.createGain(); reverbGain.gain.value = 0.32;
+        dryGain = ctx.createGain();    dryGain.gain.value = 0.85;
+
+        // routing: source -> lowpass -> (dry + reverb) -> master -> compressor -> destination
+        lowpass.connect(dryGain);
+        lowpass.connect(reverb);
+        reverb.connect(reverbGain);
+        dryGain.connect(master);
+        reverbGain.connect(master);
+        master.connect(compressor);
+        compressor.connect(ctx.destination);
+
+        return true;
+      }catch(e){
+        available = false;
+        return false;
+      }
+    }
+
+    // synthesized exponential-decay noise impulse for the convolver
+    function makeImpulse(seconds, decay){
+      const rate = ctx.sampleRate;
+      const len = Math.floor(rate * seconds);
+      const buf = ctx.createBuffer(2, len, rate);
+      for (let c=0;c<2;c++){
+        const data = buf.getChannelData(c);
+        for (let i=0;i<len;i++){
+          data[i] = (Math.random()*2 - 1) * Math.pow(1 - i/len, decay);
+        }
+      }
+      return buf;
+    }
+
+    function ensureRunning(){
+      if (ctx && ctx.state === 'suspended'){ ctx.resume().catch(()=>{}); }
+    }
+
+    /* strike — a gentle mallet tap that blooms and decays */
+    function strike(fundamental){
+      if (!init() || muted) return;
+      ensureRunning();
+      const f0 = fundamental || (210 + Math.random()*30); // calm register
+      const now = ctx.currentTime;
+
+      // soft inharmonic "ping" transient for mallet contact (subtle)
+      try{
+        const ping = ctx.createOscillator();
+        const pg = ctx.createGain();
+        ping.type = 'triangle';
+        ping.frequency.value = f0 * 6.3;
+        pg.gain.setValueAtTime(0, now);
+        pg.gain.linearRampToValueAtTime(0.05, now + 0.004);
+        pg.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+        ping.connect(pg); pg.connect(lowpass);
+        ping.start(now); ping.stop(now + 0.2);
+      }catch(e){}
+
+      RATIOS.forEach((ratio, i) => {
+        const freq = f0 * ratio;
+        const partialGain = ctx.createGain();
+        // fundamental sustains longest; higher partials decay faster
+        const decay = 5.5 - i * 0.9;            // 5.5 .. 2.8 s
+        const peak = GAINS[i] * 0.5;
+        partialGain.gain.setValueAtTime(0, now);
+        partialGain.gain.linearRampToValueAtTime(peak, now + 0.008); // gentle ~8ms attack
+        partialGain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.6, decay));
+        partialGain.connect(lowpass);
+
+        // two detuned oscillators per partial -> beating shimmer
+        const dt = DETUNE[i];
+        [freq, freq * (1 + dt)].forEach((ff, k) => {
+          const osc = ctx.createOscillator();
+          osc.type = (i === 0) ? 'sine' : 'triangle';
+          osc.frequency.value = ff;
+          osc.connect(partialGain);
+          osc.start(now);
+          osc.stop(now + Math.max(0.8, decay) + 0.1);
+        });
+      });
+    }
+
+    /* rim — sustained rubbed-rim tone with slow amplitude LFO swell */
+    function startRim(fundamental){
+      if (!init() || muted) return;
+      ensureRunning();
+      if (rimNodes) return; // already running
+      const f0 = fundamental || 220;
+      const now = ctx.currentTime;
+      const out = ctx.createGain();
+      out.gain.setValueAtTime(0.0001, now);
+      out.gain.exponentialRampToValueAtTime(0.32, now + 1.2); // fade in ~1.2s
+      out.connect(lowpass);
+
+      const oscs = [];
+      RATIOS.slice(0,3).forEach((ratio, i) => {
+        const freq = f0 * ratio;
+        const g = ctx.createGain();
+        g.gain.value = GAINS[i] * 0.5;
+        g.connect(out);
+        const dt = DETUNE[i];
+        [freq, freq*(1+dt)].forEach(ff => {
+          const osc = ctx.createOscillator();
+          osc.type = i===0 ? 'sine' : 'triangle';
+          osc.frequency.value = ff;
+          osc.connect(g); osc.start(now);
+          oscs.push(osc);
+        });
+      });
+
+      // slow amplitude LFO (~0.5 Hz) emulating the rubbed-rim swell
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.5;
+      lfoGain.gain.value = 0.10;
+      lfo.connect(lfoGain); lfoGain.connect(out.gain);
+      lfo.start(now);
+      oscs.push(lfo);
+
+      rimNodes = { out, oscs };
+    }
+
+    function stopRim(){
+      if (!rimNodes || !ctx) return;
+      const now = ctx.currentTime;
+      const { out, oscs } = rimNodes;
+      rimNodes = null;
+      try{
+        out.gain.cancelScheduledValues(now);
+        out.gain.setValueAtTime(out.gain.value, now);
+        out.gain.exponentialRampToValueAtTime(0.0001, now + 1.5); // fade out ~1.5s
+      }catch(e){}
+      oscs.forEach(o => { try{ o.stop(now + 1.7); }catch(e){} });
+    }
+
+    function setMuted(m){
+      muted = m;
+      LS.set('hed.muted', m ? '1' : '0');
+      if (master && ctx){
+        const now = ctx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.linearRampToValueAtTime(m ? 0 : 0.9, now + 0.15);
+      }
+      if (m) stopRim();
+    }
+
+    return {
+      init, strike, startRim, stopRim, setMuted,
+      isMuted: () => muted,
+      isAvailable: () => available,
+      // probe: tries init without playing, used for the arrival caption
+      probe: () => init()
+    };
+  })();
+
+  /* =============================================================
+     MODULE: MUTE toggle
+     ============================================================= */
+  const muteBtn = $('#muteBtn');
+  function reflectMute(){
+    const m = Audio.isMuted();
+    muteBtn.setAttribute('aria-pressed', m ? 'true' : 'false');
+  }
+  muteBtn.addEventListener('click', () => {
+    Audio.init();
+    Audio.setMuted(!Audio.isMuted());
+    reflectMute();
+    toast(Audio.isMuted() ? 'הקול הושתק' : 'הקול הופעל');
+    updateSoundNote();
+  });
+  reflectMute();
+
+  /* =============================================================
+     MODULE: LENS controller (Private "me" / Professional "pro")
+     ============================================================= */
+  const lensMe = $('#lensMe'), lensPro = $('#lensPro');
+  function applyLens(lens, announce){
+    document.body.setAttribute('data-lens', lens);
+    lensMe.setAttribute('aria-pressed', lens==='me' ? 'true':'false');
+    lensPro.setAttribute('aria-pressed', lens==='pro' ? 'true':'false');
+    LS.set('hed.lens', lens);
+    rebuildLibrary();
+    // switching to Private must not carry a Pro-only generator intent/result over
+    if (lens === 'me' && typeof Generator !== 'undefined' && Generator.resetForPrivate){
+      Generator.resetForPrivate();
+    }
+    if (announce){
+      toast(lens==='pro'
+        ? 'עברת למצב מנחים — נוסף עומק וכלי עבודה'
+        : 'עברת למצב אישי — פשוט ורגוע');
+    }
+  }
+  lensMe.addEventListener('click', () => applyLens('me', true));
+  lensPro.addEventListener('click', () => applyLens('pro', true));
+
+  /* =============================================================
+     MODULE: TOAST
+     ============================================================= */
+  const toastEl = $('#toast');
+  let toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  /* =============================================================
+     MODULE: ARRIVAL bowl interaction
+     ============================================================= */
+  const bowlBtn = $('#bowlBtn');
+  const heroSub = $('#heroSub');
+  const heroCta = $('#heroCta');
+  const soundNote = $('#soundNote');
+  const rings = [$('#ring1'), $('#ring2'), $('#ring3')];
+  let firstStrike = true;
+
+  function updateSoundNote(){
+    if (!Audio.isAvailable()){
+      soundNote.textContent = 'הקול אינו זמין בדפדפן הזה — אבל כל השאר עובד.';
+    } else if (Audio.isMuted()){
+      soundNote.textContent = 'הקול כבוי — הקישי על האייקון למעלה כדי להפעיל';
+    } else {
+      soundNote.textContent = '';
+    }
+  }
+
+  function fireRings(){
+    if (prefersReduced.matches) return;
+    rings.forEach((r, i) => {
+      r.classList.remove('go');
+      // restart animation with a tiny stagger
+      void r.offsetWidth;
+      setTimeout(() => r.classList.add('go'), i * 280);
+    });
+  }
+
+  bowlBtn.addEventListener('click', () => {
+    Audio.init();              // lazy-init audio on first gesture
+    // A direct tap on the arrival bowl is unambiguous intent to HEAR it.
+    // If muted, auto-unmute (sync toggle UI + persisted state) so the
+    // first tap always sounds — the global mute still works everywhere else.
+    if (Audio.isMuted()){
+      Audio.setMuted(false);
+      reflectMute();
+      updateSoundNote();
+    }
+    Audio.strike();
+    fireRings();
+    bowlBtn.classList.remove('struck'); void bowlBtn.offsetWidth; bowlBtn.classList.add('struck');
+    updateSoundNote();
+    if (firstStrike){
+      firstStrike = false;
+      heroSub.textContent = 'זה הצליל שלה. עכשיו בואי נכיר אותה לעומק.';
+      heroCta.classList.add('show');
+    }
+  });
+
+  /* fork choices — set lens, non-blocking */
+  const forkMe = $('#forkMe'), forkPro = $('#forkPro');
+  forkMe.addEventListener('click', () => {
+    forkMe.setAttribute('aria-pressed','true'); forkPro.setAttribute('aria-pressed','false');
+    applyLens('me', true);
+  });
+  forkPro.addEventListener('click', () => {
+    forkPro.setAttribute('aria-pressed','true'); forkMe.setAttribute('aria-pressed','false');
+    applyLens('pro', true);
+  });
+
+  /* =============================================================
+     MODULE: REVEAL on scroll (IntersectionObserver)
+     ============================================================= */
+  function initReveal(){
+    const els = $$('.reveal');
+    /* The tools launcher stays out of the way during the arrival moment,
+       then fades in once the visitor scrolls into the content. Uses
+       IntersectionObserver (not motion), so it works for reduced-motion users too. */
+    const launcherEl = $('.launcher'), arrivalEl = $('#arrival');
+    if (launcherEl && arrivalEl){
+      if ('IntersectionObserver' in window){
+        new IntersectionObserver((entries) => {
+          entries.forEach(e => launcherEl.classList.toggle('show', !(e.isIntersecting && e.intersectionRatio >= 0.35)));
+        }, { threshold:[0, 0.35, 1] }).observe(arrivalEl);
+      } else {
+        launcherEl.classList.add('show');
+      }
+    }
+    if (prefersReduced.matches || !('IntersectionObserver' in window)){
+      els.forEach(el => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    els.forEach(el => io.observe(el));
+  }
+
+  /* =============================================================
+     MODULE: PRACTICE LIBRARY (source = RESEARCH-FINDINGS §8)
+     ============================================================= */
+  const LIBRARY = [
+    { id:'strike', title:'הקשה אחת — פעמון פנימי', fit:'מתחילים', min:'5–10 דק׳', priv:true,
+      steps:['הקישי הקשה אחת רכה.','הניחי לקשב לנוח על הצליל בזמן שהוא מתפשט.','שבי בשקט שנותר אחרי שהצליל דועך.','כשמוכנה — הקישי שוב וחזרי.'] },
+    { id:'tail', title:'להקשיב לזנב הצליל', fit:'כל הרמות', min:'5–10 דק׳', priv:true,
+      steps:['הקישי, ועקבי אחרי הצליל.','המשיכי לעקוב עד הרגע המדויק שבו הוא הופך לשקט.','נוחי שם, בנקודת המעבר.'] },
+    { id:'rim', title:'שירה מתמשכת כעוגן', fit:'מתקדמים מעט', min:'מ־1–2 דק׳', priv:false,
+      steps:['הקישי כדי להתחיל את הרטט.','החליקי את המקל על השפה במעגלים קבועים.','הניחי לקשב לנוח על ההמהום, כמו על הנשימה.'] },
+    { id:'breath', title:'נשימה בקצב הקערה', fit:'מתחילים', min:'5–10 דק׳', priv:true,
+      steps:['הקישי כדי לפתוח כל מחזור.','שאפי אל תוך הצליל הבהיר.','נשפי אל תוך השקט שמגיע אחריו.'] },
+    { id:'bodyscan', title:'סריקת גוף לפי הקשות', fit:'בינוני', min:'10–15 דק׳', priv:false,
+      steps:['הקישי, והעבירי קשב מהראש כלפי מטה.','כשהקשב נודד — הקישי שוב והמשיכי.','השאירי את הקערה לצד הגוף, לא עליו.'] },
+    { id:'bookend', title:'לפתוח ולסגור ישיבה', fit:'כל הרמות', min:'גמיש', priv:false,
+      steps:['הקשה אחת לפתיחה.','התרגול שלך באמצע.','הקשה אחת לסגירה.'] },
+    { id:'sleep', title:'רגיעה לפני שינה', fit:'כל הרמות', min:'5–10 דק׳', priv:true,
+      steps:['2–3 הקשות עדינות.','תני לכל צליל לדעוך לגמרי לפני הבא.','הניחי לעצמך להיסחף.'] },
+    { id:'separate', title:'להפריד בין הצלילים', fit:'מנוסים', min:'10 דק׳', priv:false, adv:true,
+      steps:['הקישי, ובחרי צליל עליון אחד.','עקבי אחריו לבדו.','אחר כך שניים — ואז כולם יחד.'] }
+  ];
+
+  function libCard(p){
+    const advClass = p.adv ? ' adv' : '';
+    const steps = p.steps.map(s => `<li>${s}</li>`).join('');
+    return `<article class="card${advClass}">
+        <h3>${p.title}</h3>
+        <div class="meta"><span class="tag">מתאים ל${p.fit}</span><span class="tag dur">${p.min}</span></div>
+        <ol class="steps">${steps}</ol>
+      </article>`;
+  }
+
+  const libEl = $('#practiceLib');
+  function rebuildLibrary(){
+    const pro = document.body.getAttribute('data-lens') === 'pro';
+    // Private sees the 4 gentle/foundational practices; Pro sees all 8.
+    const list = pro ? LIBRARY : LIBRARY.filter(p => p.priv);
+    libEl.innerHTML = list.map(libCard).join('');
+  }
+
+  /* =============================================================
+     MODULE: SHEETS — open/close, focus trap, ESC, focus restore
+     ============================================================= */
+  const scrim = $('#scrim');
+  const sheets = {
+    tools:        $('#sheetTools'),
+    resonance:    $('#sheetResonance'),
+    generator:    $('#sheetGenerator'),
+    trouble:      $('#sheetTrouble')
+  };
+  let activeSheet = null;
+  let lastFocused = null;
+
+  function getFocusable(el){
+    return $$('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])', el)
+      .filter(n => !n.hasAttribute('disabled') && n.offsetParent !== null);
+  }
+
+  // hide the page behind an open sheet from AT + remove it from the tab order.
+  // `inert` covers focus/pointer; `aria-hidden` covers screen-reader virtual cursor.
+  const inertTargets = [$('main'), $('.topbar'), $('.launcher')].filter(Boolean);
+  function setBackgroundInert(on){
+    inertTargets.forEach(el => {
+      if (on){ el.setAttribute('inert',''); el.setAttribute('aria-hidden','true'); }
+      else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); }
+    });
+  }
+
+  const launcherBtn = $('#launcherBtn');
+
+  function openSheet(key){
+    const sheet = sheets[key];
+    if (!sheet) return;
+    const chaining = activeSheet && activeSheet !== sheet;
+    if (chaining){ hideSheet(activeSheet); }
+    // When chaining from another sheet (e.g. opening Resonance from a button
+    // inside the Generator result), the current activeElement lives inside the
+    // sheet we're about to hide — restoring to it later would focus a hidden
+    // node. Fall back to the always-visible launcher button instead.
+    if (!chaining){ lastFocused = document.activeElement; }
+    else { lastFocused = launcherBtn; }
+    setBackgroundInert(true);
+    sheet.hidden = false;
+    scrim.classList.add('open');
+    // next frame for transition
+    requestAnimationFrame(() => sheet.classList.add('open'));
+    activeSheet = sheet;
+    document.body.style.overflow = 'hidden';
+    const focusables = getFocusable(sheet);
+    if (focusables.length) focusables[0].focus();
+  }
+
+  function hideSheet(sheet){
+    sheet.classList.remove('open');
+    const done = () => { sheet.hidden = true; sheet.removeEventListener('transitionend', done); };
+    if (prefersReduced.matches){ done(); }
+    else { sheet.addEventListener('transitionend', done); setTimeout(done, 480); }
+  }
+
+  function closeActiveSheet(){
+    if (!activeSheet) return;
+    // tool-specific teardown
+    if (activeSheet === sheets.resonance) Resonance.stop(true);
+    hideSheet(activeSheet);
+    scrim.classList.remove('open');
+    document.body.style.overflow = '';
+    activeSheet = null;
+    setBackgroundInert(false);
+    // restore focus to a visible element (never into a now-hidden sheet)
+    if (lastFocused && lastFocused.focus && lastFocused.offsetParent !== null){
+      lastFocused.focus();
+    } else if (launcherBtn){
+      launcherBtn.focus();
+    }
+  }
+
+  scrim.addEventListener('click', closeActiveSheet);
+  $$('[data-close-sheet]').forEach(b => b.addEventListener('click', closeActiveSheet));
+
+  // global key handling: ESC closes, TAB trap
+  document.addEventListener('keydown', (e) => {
+    if (!activeSheet) return;
+    if (e.key === 'Escape'){ e.preventDefault(); closeActiveSheet(); return; }
+    if (e.key === 'Tab'){
+      const f = getFocusable(activeSheet);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length-1];
+      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
+  });
+
+  // launcher + open triggers
+  $('#launcherBtn').addEventListener('click', () => openSheet('tools'));
+  $$('[data-open-resonance]').forEach(b => b.addEventListener('click', () => openSheet('resonance')));
+  $$('[data-open-troubleshooter]').forEach(b => b.addEventListener('click', () => { Troubleshooter.reset(); openSheet('trouble'); }));
+  $$('[data-open-generator]').forEach(b => b.addEventListener('click', (e) => {
+    const preset = e.currentTarget.getAttribute('data-preset');
+    Generator.open(preset);
+    openSheet('generator');
+  }));
+
+  // generic single-select chip group helper
+  function bindChipGroup(container, onSelect){
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn || btn.hasAttribute('disabled')) return;
+      $$('.chip', container).forEach(c => c.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      if (onSelect) onSelect(btn);
+    });
+  }
+
+  /* =============================================================
+     MODULE: TOOL A — RESONANCE SESSION
+     breath orb + rings + 4s in / 1s hold / 6s out pacing
+     ============================================================= */
+  const Resonance = (function(){
+    const setup = $('#resSetup'), active = $('#resActive');
+    const orb = $('#resOrb'), cue = $('#resCue'), strikeCue = $('#resStrikeCue');
+    const timerEl = $('#resTimer'), msgEl = $('#resMsg');
+    const stopBtn = $('#resStop');
+    const ringEls = $$('.res-ring');
+    let durationMin = 5, mode = 'ambient';
+    let endTime = 0, phaseTimer = null, tickTimer = null, running = false, ending = false;
+    let cueTimer = null;
+
+    bindChipGroup($('#resDuration'), btn => durationMin = parseInt(btn.dataset.min,10));
+    bindChipGroup($('#resMode'), btn => mode = btn.dataset.mode);
+
+    function fmt(s){ const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
+
+    function setRings(on){
+      ringEls.forEach(r => r.classList.toggle('pulse', on && !prefersReduced.matches));
+    }
+
+    // one breath cycle: inhale 4s, hold 1s, exhale 6s
+    function breathCycle(){
+      if (!running) return;
+      // INHALE
+      cue.textContent = 'שאיפה…';
+      orb.classList.remove('exhale','hold'); orb.classList.add('inhale');
+      if (mode === 'bowl'){ strikeCue.textContent = 'הקישי עכשיו ›'; }
+      else { strikeCue.textContent = ''; }
+      phaseTimer = setTimeout(() => {
+        if (!running) return;
+        // HOLD
+        cue.textContent = 'החזקה';
+        orb.classList.remove('inhale'); orb.classList.add('hold');
+        strikeCue.textContent = '';
+        phaseTimer = setTimeout(() => {
+          if (!running) return;
+          // EXHALE
+          cue.textContent = 'נשיפה…';
+          orb.classList.remove('inhale','hold'); orb.classList.add('exhale');
+          // ambient tone blooms softly on the exhale
+          if (mode === 'ambient'){ Audio.strike(200 + Math.random()*24); }
+          phaseTimer = setTimeout(() => { if (running) breathCycle(); }, 6000);
+        }, 1000);
+      }, 4000);
+    }
+
+    function tick(){
+      const remain = Math.max(0, Math.round((endTime - Date.now())/1000));
+      timerEl.textContent = fmt(remain);
+      if (remain <= 0){ finish(); return; }
+      tickTimer = setTimeout(tick, 250);
+    }
+
+    function start(){
+      running = true; ending = false;
+      setup.hidden = true; active.hidden = false;
+      msgEl.textContent = ''; strikeCue.textContent = '';
+      endTime = Date.now() + durationMin*60*1000;
+      setRings(true);
+      if (mode === 'ambient'){ Audio.startRim(216); }
+      breathCycle();
+      tick();
+    }
+
+    function finish(){
+      if (ending) return;
+      ending = true; running = false;
+      clearTimeout(phaseTimer); clearTimeout(tickTimer);
+      cue.textContent = '';
+      strikeCue.textContent = '';
+      orb.classList.remove('inhale','hold'); orb.classList.add('exhale');
+      Audio.stopRim();
+      if (mode === 'ambient') Audio.strike(208);
+      // Honor our own Pro guidance ("~60–90s of silence after the last tone"):
+      // don't hard-cut at 4s. Hold the calm integration message for a long,
+      // gentle window; turn the early-stop control into a clear "סיום" so the
+      // session ends only when the user chooses. The session never auto-closes.
+      timerEl.textContent = '';
+      msgEl.textContent = 'קחי רגע בשקט.';
+      stopBtn.textContent = 'סיום';
+      // after a soft ~45s, add a quiet closing cue (message stays until "סיום")
+      clearTimeout(cueTimer);
+      cueTimer = setTimeout(() => {
+        if (ending){ cue.textContent = 'כשאת מוכנה, חזרי לאט.'; }
+      }, 45000);
+    }
+
+    function stop(silent){
+      running = false; ending = false;
+      clearTimeout(phaseTimer); clearTimeout(tickTimer); clearTimeout(cueTimer);
+      setRings(false);
+      Audio.stopRim();
+      orb.classList.remove('inhale','hold','exhale');
+      // reset to setup for next time
+      active.hidden = true; setup.hidden = false;
+      cue.textContent = 'שאיפה…'; strikeCue.textContent=''; msgEl.textContent='';
+      stopBtn.textContent = 'סיום מוקדם';
+      timerEl.textContent = fmt(durationMin*60);
+    }
+
+    $('#resStart').addEventListener('click', start);
+    $('#resStop').addEventListener('click', () => { stop(false); });
+
+    return { stop, start };
+  })();
+
+  /* =============================================================
+     MODULE: TOOL B — PRACTICE GENERATOR
+     intent + time -> composed practice from the library
+     ============================================================= */
+  const Generator = (function(){
+    const timeGroup = $('#genTime'), intentGroup = $('#genIntent');
+    const resultEl = $('#genResult');
+    let time = 5, intent = 'relax';
+
+    bindChipGroup(timeGroup, btn => time = parseInt(btn.dataset.min,10));
+    bindChipGroup(intentGroup, btn => intent = btn.dataset.intent);
+
+    // mapping intent -> 2+ library ids (so "תרגול אחר" always rotates) + framing.
+    // Every intent has at least two mapped practices to rotate between.
+    const MAP = {
+      relax:   { ids:['breath','strike'],  why:'כדי להוריד הילוך — תרגול רך ואטי שמרכך את הקצב.', restLink:true },
+      sleep:   { ids:['sleep','breath'],   why:'לקראת שינה — תרגול עדין שדועך לאט ומזמין את הגוף להירגע.', restLink:true },
+      focus:   { ids:['tail','rim'],       why:'לחידוד קשב — תרגול שמעגן את תשומת הלב בצליל אחד.' },
+      check:   { ids:['strike','tail'],    why:'רגע להתכוונן — תרגול קצר ופשוט לבדוק איפה את עכשיו.', tsLink:true },
+      open:    { ids:['bookend','strike'], why:'לפתיחת שיעור — סימון ברור שמכנס את הקבוצה ומסמן התחלה.' },
+      close:   { ids:['bookend','tail'],   why:'לסגירת שיעור — צליל וסיום שקט שמאפשרים עיבוד והודיה.' },
+      oneonone:{ ids:['bodyscan','rim'],   why:'לעבודה פרטנית רגועה — נוכחות צליל עדינה לצד המטופל/ת.', onBody:true }
+    };
+
+    // per-intent rotation index — advanced on each generate so "תרגול אחר"
+    // visibly shows a different mapped practice.
+    const rotation = {};
+
+    // build the candidate list for an intent, honoring time hints, without
+    // collapsing to a single item (rotation needs the full set).
+    function candidates(m){
+      let chosen = m.ids.map(id => LIBRARY.find(p => p.id === id)).filter(Boolean);
+      if (time <= 2){
+        // shortest, simplest practice first
+        chosen = chosen.slice().sort((a,b) => (a.id==='strike'?-1:1));
+      }
+      if (time >= 15 && !chosen.find(p => p.id==='bodyscan')){
+        const bs = LIBRARY.find(p => p.id==='bodyscan');
+        if (bs) chosen.push(bs);
+      }
+      return chosen.length ? chosen : [LIBRARY[0]];
+    }
+
+    // pick the current practice for an intent and advance its rotation index
+    function pickRotating(m, intentKey, advance){
+      const list = candidates(m);
+      if (!(intentKey in rotation)) rotation[intentKey] = 0;
+      if (advance) rotation[intentKey] = (rotation[intentKey] + 1) % list.length;
+      const idx = rotation[intentKey] % list.length;
+      return list[idx];
+    }
+
+    // render(advance): when called from the regenerate button, advance rotation
+    function render(advance){
+      const m = MAP[intent] || MAP.relax;
+      const p = pickRotating(m, intent, advance === true);
+      const steps = p.steps.map(s => `<li>${s}</li>`).join('');
+      let extra = '';
+      if (m.restLink){
+        extra += `<button type="button" class="btn btn-secondary" data-open-resonance style="margin-block-start:var(--s4)">הפעילי אמבט צליל מודרך</button>`;
+      }
+      if (m.tsLink){
+        extra += `<button type="button" class="btn btn-secondary" data-go-ts style="margin-block-start:var(--s4)">לבדוק אם הקערה מתנהגת כשורה</button>`;
+      }
+      if (m.onBody){
+        extra += `<p class="muted small" style="margin-block-start:var(--s3)">לעבודה פרטנית: הניחי את הקערה לצד הגוף ולא עליו, ובדקי התוויות נגד מראש.</p>`;
+      }
+      resultEl.innerHTML = `<div class="result ts-step">
+          <h3>${p.title}</h3>
+          <p class="why">${m.why}</p>
+          <div class="meta"><span class="tag dur">${time} דק׳</span><span class="tag">מתאים ל${p.fit}</span></div>
+          <ol class="steps">${steps}</ol>
+          ${extra}
+          <div class="cta-row" style="margin-block-start:var(--s5)">
+            <button type="button" class="btn btn-tertiary" id="genRegen">תרגול אחר ›</button>
+          </div>
+        </div>`;
+      // wire dynamically-rendered buttons — regenerate advances the rotation
+      const regen = $('#genRegen'); if (regen) regen.addEventListener('click', () => render(true));
+      const res = resultEl.querySelector('[data-open-resonance]');
+      if (res) res.addEventListener('click', () => openSheet('resonance'));
+      const ts = resultEl.querySelector('[data-go-ts]');
+      if (ts) ts.addEventListener('click', () => { Troubleshooter.reset(); openSheet('trouble'); });
+    }
+
+    // open with optional preset like "rest5"
+    function open(preset){
+      if (preset === 'rest5'){
+        time = 5; intent = 'relax';
+        $$('.chip', timeGroup).forEach(c => c.setAttribute('aria-pressed', c.dataset.min==='5'?'true':'false'));
+        $$('.chip', intentGroup).forEach(c => c.setAttribute('aria-pressed', c.dataset.intent==='relax'?'true':'false'));
+        render(false);
+      } else {
+        resultEl.innerHTML = '';
+      }
+    }
+
+    // when switching to the Private lens, a previously-selected Pro intent
+    // (open/close/oneonone) must not leak a Pro-only practice into Private.
+    // Reset to a Private-safe default and clear any rendered result.
+    const PRO_INTENTS = ['open','close','oneonone'];
+    function resetForPrivate(){
+      if (PRO_INTENTS.indexOf(intent) !== -1){
+        intent = 'relax';
+        $$('.chip', intentGroup).forEach(c => c.setAttribute('aria-pressed', c.dataset.intent==='relax'?'true':'false'));
+      }
+      resultEl.innerHTML = '';
+    }
+
+    // "בנו לי תרגול" — generate fresh (no rotation advance; ignore the event arg)
+    $('#genRun').addEventListener('click', () => render(false));
+    return { open, resetForPrivate };
+  })();
+
+  /* =============================================================
+     MODULE: TOOL C — TROUBLESHOOTER
+     symptom -> cause -> fix (from RESEARCH-FINDINGS §4 table)
+     ============================================================= */
+  const Troubleshooter = (function(){
+    const body = $('#tsBody');
+    const SYMPTOMS = [
+      { id:'silent',  label:'אין צליל בכלל',          cause:'מתחילים מעצירה מוחלטת — אין רטט להמשיך ממנו.', fix:'הקישי קודם כדי "להעיר" את הקערה, ורק אז התחילי לחכך.' },
+      { id:'dies',    label:'הצליל מתחיל ונכבה',      cause:'החיכוך אטי מדי, והרטט לא מצליח להיאחז.', fix:'האיצי בהדרגה את המקל; שמרי מהירות קבועה ולחץ אחיד.' },
+      { id:'skips',   label:'המקל מקפץ/מצייץ',        cause:'החיכוך מהיר מדי — המקל "מאבד אחיזה" ומדלג.', fix:'האטי, ושמרי מגע רציף עם הדופן.' },
+      { id:'harsh',   label:'צליל צורם וחד',          cause:'המקל קשה או חלק מדי (עץ חשוף) ומחליק.', fix:'עברי למקל זמש/עור, ולחץ אחיד וקבוע.' },
+      { id:'dull',    label:'עמום, לא מתמלא',         cause:'לחץ מועט מדי, או מקל שאינו מתאים לגודל הקערה.', fix:'הוסיפי מעט לחץ; התאימי את גודל המקל לגודל הקערה.' },
+      { id:'cuts',    label:'נקטע באמצע',             cause:'אצבעות נוגעות בדופן הרוטטת ו"בולעות" את הצליל.', fix:'החזיקי על כף יד פתוחה ושטוחה, אצבעות הרחק מהדופן, או השתמשי בכרית.' },
+      { id:'small',   label:'קערה קטנה לא שרה',       cause:'קערות קטנות קשות יותר לעורר.', fix:'נסי מקל קשה וקטן יותר; קערה בקוטר 15–20 ס״מ ידידותית למתחילים.' }
+    ];
+
+    function reset(){
+      body.innerHTML = `<div class="ts-step">
+          <p class="tool-label" style="font-size:1rem">מה קורה?</p>
+          <div class="chips" id="tsSymptoms" role="group" aria-label="בחירת תקלה">
+            ${SYMPTOMS.map(s => `<button type="button" class="chip" data-sym="${s.id}">${s.label}</button>`).join('')}
+          </div>
+        </div>`;
+      $('#tsSymptoms').addEventListener('click', (e) => {
+        const btn = e.target.closest('.chip'); if (!btn) return;
+        showResult(btn.dataset.sym);
+      });
+    }
+
+    function showResult(id){
+      const s = SYMPTOMS.find(x => x.id === id) || SYMPTOMS[0];
+      body.innerHTML = `<div class="ts-step ts-result">
+          <button type="button" class="btn btn-tertiary" id="tsBack">‹ חזרה</button>
+          <h3 style="margin-block-start:var(--s3); color:hsl(var(--ink))">${s.label}</h3>
+          <div class="row"><div class="k">הסיבה</div><div class="v">${s.cause}</div></div>
+          <div class="row"><div class="k">מה לעשות</div><div class="v">${s.fix}</div></div>
+          <div class="cta-row" style="margin-block-start:var(--s5)">
+            <button type="button" class="btn btn-secondary" id="tsHelped">עזר ✓</button>
+            <button type="button" class="btn btn-tertiary" id="tsNoHelp">עוד לא</button>
+          </div>
+          <div id="tsMore"></div>
+          <p class="ts-reassure">כמעט תמיד זה עניין של מקל, מהירות או לחץ — לא קערה מקולקלת. הקערה שלך כמעט בוודאות בסדר גמור.</p>
+        </div>`;
+      $('#tsBack').addEventListener('click', reset);
+      $('#tsHelped').addEventListener('click', () => { toast('מצוין. תהני מהצליל.'); });
+      $('#tsNoHelp').addEventListener('click', () => {
+        $('#tsMore').innerHTML = `<div class="result" style="margin-block-start:var(--s4)">
+            <strong style="color:hsl(var(--bronze))">שלושת החשדות הראשונים</strong>
+            <p class="muted" style="margin-block-start:var(--s2)">מהר מדי · אצבעות נוגעות בדופן · מקל לא מתאים (זמש/עור הכי טוב לשירה).</p>
+          </div>`;
+      });
+    }
+
+    return { reset };
+  })();
+
+  /* =============================================================
+     INIT
+     ============================================================= */
+  function init(){
+    // restore persisted lens (default "me")
+    const savedLens = LS.get('hed.lens', 'me');
+    applyLens(savedLens === 'pro' ? 'pro' : 'me', false);
+
+    rebuildLibrary();
+    initReveal();
+
+    // probe audio availability for the arrival caption (no sound yet)
+    // we don't init the context here — only update the note text
+    updateSoundNote();
+
+    // first interaction anywhere may unlock audio context on some browsers
+    Troubleshooter.reset();
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>
