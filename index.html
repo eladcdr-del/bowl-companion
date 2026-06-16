@@ -224,7 +224,10 @@ body[data-lens="pro"] .lens .thumb{ transform:translateX(-100%); }
 .hero .hero-sub{ color:hsl(var(--ink-2)); font-size:1.15rem; max-width:30ch; margin-inline:auto; margin-block-start:var(--s2); }
 
 /* interactive bowl (SVG) */
-.bowl-stage{ position:relative; width:min(80vw, 360px); aspect-ratio:1; margin-block:var(--s5) var(--s6); display:grid; place-items:center; }
+/* the bowl drawing sits in the upper-middle of its square SVG box, leaving soft
+   glow space below it — a negative bottom margin pulls the text up into that
+   halo so it reads as "just below the bowl" rather than floating far away. */
+.bowl-stage{ position:relative; width:min(78vw, 350px); aspect-ratio:1; margin-block:var(--s4) calc(var(--s8) * -1); display:grid; place-items:center; }
 .bowl-rings{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
 .ring{
   position:absolute; border:1.5px solid hsl(var(--bronze) / .5); border-radius:50%;
@@ -239,9 +242,14 @@ body[data-lens="pro"] .lens .thumb{ transform:translateX(-100%); }
   appearance:none; border:0; background:transparent; cursor:pointer; padding:0;
   width:100%; height:100%; border-radius:50%; display:grid; place-items:center;
   position:relative; z-index:2; transition:transform 500ms var(--ease);
+  -webkit-tap-highlight-color:transparent;
 }
 .bowl-btn:hover{ transform:scale(1.015); }
 .bowl-btn:active{ transform:scale(.985); }
+/* the bowl is round — never show a square outline box on tap/click.
+   keyboard users get a soft CIRCULAR ring that follows the shape. */
+.bowl-btn:focus{ outline:none; }
+.bowl-btn:focus-visible{ outline:2px solid hsl(var(--bronze) / .85); outline-offset:10px; border-radius:50%; }
 .bowl-btn svg{ width:100%; height:100%; filter:drop-shadow(0 24px 50px hsl(20 50% 3% / .6)); }
 /* gentle idle breathing on the glow — invites the tap, echoes the orb's life */
 .bowl-glow{ animation:bowlBreathe 6500ms var(--ease) infinite; transform-box:fill-box; transform-origin:center; }
@@ -253,12 +261,16 @@ body[data-lens="pro"] .lens .thumb{ transform:translateX(-100%); }
 .bowl-btn.struck .bowl-body{ animation:bowlShimmer 2200ms var(--ease); }
 @keyframes bowlShimmer{ 0%,100%{ transform:scaleX(1);} 25%{ transform:scaleX(1.012);} 60%{ transform:scaleX(.994);} }
 
-.sound-note{ font-size:.85rem; color:hsl(var(--ink-3)); margin-block-start:var(--s2); min-height:1.2em; }
-.hero-cta{ margin-block-start:var(--s4); opacity:0; transform:translateY(8px); transition:opacity 600ms var(--ease), transform 600ms var(--ease); pointer-events:none; }
-.hero-cta.show{ opacity:1; transform:none; pointer-events:auto; }
+.sound-note{ font-size:.85rem; color:hsl(var(--ink-3)); margin-block-start:var(--s1); min-height:1.2em; }
+/* the post-tap CTA takes NO space until it appears (no dead gap under the bowl
+   pre-tap), then fades in after the first strike. */
+.hero-cta{ display:none; margin-block-start:var(--s4); }
+.hero-cta.show{ display:block; animation:ctaIn 560ms var(--ease) both; }
+@keyframes ctaIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+@media (prefers-reduced-motion: reduce){ .hero-cta.show{ animation:none; } }
 
 /* fork line */
-.fork{ margin-block-start:var(--s8); display:flex; flex-direction:column; align-items:center; gap:var(--s3); }
+.fork{ margin-block-start:var(--s5); display:flex; flex-direction:column; align-items:center; gap:var(--s3); }
 .fork .q{ font-size:.95rem; color:hsl(var(--ink-3)); font-family:"Frank Ruhl Libre", serif; }
 .fork-choices{ display:flex; flex-wrap:wrap; gap:var(--s2); justify-content:center; }
 .fork-choices button{
@@ -268,6 +280,9 @@ body[data-lens="pro"] .lens .thumb{ transform:translateX(-100%); }
 }
 .fork-choices button:hover{ color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .5); }
 .fork-choices button[aria-pressed="true"]{ color:hsl(var(--bronze)); border-color:hsl(var(--bronze) / .7); background:hsl(var(--bronze) / .08); }
+.fork-confirm{ margin-block-start:var(--s2); font-size:.9rem; line-height:1.55; color:hsl(var(--bronze) / .92); max-width:36ch; min-height:1em; opacity:0; transform:translateY(4px); transition:opacity 520ms var(--ease), transform 520ms var(--ease); }
+.fork-confirm.show{ opacity:1; transform:none; }
+@media (prefers-reduced-motion: reduce){ .fork-confirm{ transition:opacity 200ms linear; transform:none; } }
 .hero-foot{ margin-block-start:var(--s10); font-size:.85rem; color:hsl(var(--ink-3)); }
 
 /* scroll hint */
@@ -642,11 +657,6 @@ footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; co
     <span class="sub">מלווה הקערה</span>
   </div>
   <div class="topbar-tools">
-    <div class="lens" role="group" aria-label="בחירת מצב תצוגה">
-      <span class="thumb" aria-hidden="true"></span>
-      <button type="button" id="lensMe" aria-pressed="true">לי</button>
-      <button type="button" id="lensPro" aria-pressed="false">למנחים</button>
-    </div>
     <button type="button" class="icon-btn" id="muteBtn" aria-pressed="false" aria-label="השתקת קול / הפעלת קול">
       <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
       <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m23 9-6 6"/><path d="m17 9 6 6"/></svg>
@@ -751,11 +761,12 @@ footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; co
     </div>
 
     <div class="fork" id="fork">
-      <span class="q">מי מחזיק/ה בקערה?</span>
-      <div class="fork-choices" role="group" aria-label="מי מחזיק בקערה">
-        <button type="button" id="forkMe" aria-pressed="false">הבאתי אותה לעצמי</button>
-        <button type="button" id="forkPro" aria-pressed="false">אני מלווה אחרים</button>
+      <span class="q">לאיזו מטרה רכשת את הקערה?</span>
+      <div class="fork-choices" role="group" aria-label="לאיזו מטרה רכשת את הקערה">
+        <button type="button" id="forkMe" aria-pressed="false">לשימוש אישי שלי</button>
+        <button type="button" id="forkPro" aria-pressed="false">כדי ללוות אחרים</button>
       </div>
+      <p class="fork-confirm" id="forkConfirm" aria-live="polite"></p>
     </div>
 
     <p class="hero-foot">אפשר להמשיך בקצב שלך. אין כאן שום דבר שחייבים.</p>
@@ -1430,7 +1441,6 @@ footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; co
     Audio.init();
     Audio.setMuted(!Audio.isMuted());
     reflectMute();
-    toast(Audio.isMuted() ? 'הקול הושתק' : 'הקול הופעל');
     updateSoundNote();
   });
   reflectMute();
@@ -1438,25 +1448,20 @@ footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; co
   /* =============================================================
      MODULE: LENS controller (Private "me" / Professional "pro")
      ============================================================= */
-  const lensMe = $('#lensMe'), lensPro = $('#lensPro');
-  function applyLens(lens, announce){
+  // Lens is chosen once at the arrival ("לאיזו מטרה רכשת את הקערה?") and persists.
+  // No top-bar toggle and no pop-up toast — the choice is confirmed gently, inline.
+  function applyLens(lens){
     document.body.setAttribute('data-lens', lens);
-    lensMe.setAttribute('aria-pressed', lens==='me' ? 'true':'false');
-    lensPro.setAttribute('aria-pressed', lens==='pro' ? 'true':'false');
+    const fm = $('#forkMe'), fp = $('#forkPro');
+    if (fm) fm.setAttribute('aria-pressed', lens==='me' ? 'true':'false');
+    if (fp) fp.setAttribute('aria-pressed', lens==='pro' ? 'true':'false');
     LS.set('hed.lens', lens);
     rebuildLibrary();
     // switching to Private must not carry a Pro-only generator intent/result over
     if (lens === 'me' && typeof Generator !== 'undefined' && Generator.resetForPrivate){
       Generator.resetForPrivate();
     }
-    if (announce){
-      toast(lens==='pro'
-        ? 'עברת למצב מנחים — נוסף עומק וכלי עבודה'
-        : 'עברת למצב אישי — פשוט ורגוע');
-    }
   }
-  lensMe.addEventListener('click', () => applyLens('me', true));
-  lensPro.addEventListener('click', () => applyLens('pro', true));
 
   /* =============================================================
      MODULE: TOAST
@@ -1521,16 +1526,17 @@ footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; co
     }
   });
 
-  /* fork choices — set lens, non-blocking */
-  const forkMe = $('#forkMe'), forkPro = $('#forkPro');
-  forkMe.addEventListener('click', () => {
-    forkMe.setAttribute('aria-pressed','true'); forkPro.setAttribute('aria-pressed','false');
-    applyLens('me', true);
-  });
-  forkPro.addEventListener('click', () => {
-    forkPro.setAttribute('aria-pressed','true'); forkMe.setAttribute('aria-pressed','false');
-    applyLens('pro', true);
-  });
+  /* fork choices — this IS the lens selector. Calm, persistent inline confirmation; no toast. */
+  const forkConfirm = $('#forkConfirm');
+  function chooseLens(lens){
+    applyLens(lens);
+    forkConfirm.textContent = lens === 'pro'
+      ? 'יופי — פתחנו לך גם את שכבת העומק והכלים למנחים. אפשר להחליף בכל רגע.'
+      : 'יופי — נלך לאט, רק מה שצריך. אפשר להחליף בכל רגע.';
+    forkConfirm.classList.add('show');
+  }
+  $('#forkMe').addEventListener('click', () => chooseLens('me'));
+  $('#forkPro').addEventListener('click', () => chooseLens('pro'));
 
   /* =============================================================
      MODULE: REVEAL on scroll (IntersectionObserver)
@@ -2000,7 +2006,7 @@ footer .credit .mark{ font-family:"Frank Ruhl Libre", serif; font-weight:900; co
   function init(){
     // restore persisted lens (default "me")
     const savedLens = LS.get('hed.lens', 'me');
-    applyLens(savedLens === 'pro' ? 'pro' : 'me', false);
+    applyLens(savedLens === 'pro' ? 'pro' : 'me');
 
     rebuildLibrary();
     initReveal();
